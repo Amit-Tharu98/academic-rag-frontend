@@ -1,0 +1,403 @@
+<section class="ask-page">
+
+  <!-- PAGE HEADING -->
+
+  <div class="page-heading">
+
+    <div>
+
+      <h2>
+        Ask a Question
+      </h2>
+
+      <p>
+        Ask questions against the academic document
+        collection using the selected embedding model.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- QUESTION FORM -->
+
+  <div class="question-card">
+
+    <div class="form-grid">
+
+      <!-- EMBEDDING MODEL -->
+
+      <div class="form-group">
+
+        <label for="embeddingModel">
+          Embedding Model
+        </label>
+
+        <select
+          id="embeddingModel"
+          [(ngModel)]="selectedModel"
+        >
+
+          <option
+            value="sentence_transformer"
+          >
+            Sentence Transformer
+          </option>
+
+          <option
+            value="bge"
+          >
+            BGE
+          </option>
+
+          <option
+            value="openai"
+          >
+            OpenAI
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- TOP K -->
+
+      <div class="form-group">
+
+        <label for="topK">
+          Top-K Results
+        </label>
+
+        <select
+          id="topK"
+          [(ngModel)]="topK"
+        >
+
+          <option [value]="3">
+            3
+          </option>
+
+          <option [value]="5">
+            5
+          </option>
+
+          <option [value]="10">
+            10
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <!-- QUESTION -->
+
+    <div
+      class="form-group question-group"
+      ngSkipHydration
+    >
+
+      <label for="question">
+        Question
+      </label>
+
+      <textarea
+        id="question"
+        rows="6"
+        [(ngModel)]="question"
+        placeholder="Enter your academic question..."
+      ></textarea>
+
+    </div>
+
+
+    <!-- ERROR -->
+
+    @if (errorMessage) {
+
+      <div class="error-message">
+
+        {{ errorMessage }}
+
+      </div>
+
+    }
+
+
+    <!-- BUTTON -->
+
+    <div class="action-row">
+
+      <button
+        type="button"
+        class="ask-button"
+        [disabled]="loading"
+        (click)="askQuestion()"
+      >
+
+        @if (loading) {
+
+          Generating Answer...
+
+        } @else {
+
+          Ask Question
+
+        }
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- RESULT -->
+
+  @if (result) {
+
+    <div class="answer-section">
+
+
+      <!-- GENERATED ANSWER -->
+
+      <div class="section-heading">
+
+        <div>
+
+          <h3>
+            Generated Answer
+          </h3>
+
+          <p>
+            Response generated from retrieved
+            academic document context.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="answer-card">
+
+        <p class="answer-text">
+
+          {{ result.answer }}
+
+        </p>
+
+      </div>
+
+
+      <!-- RESULT STATS -->
+
+      <div class="result-stats">
+
+
+        <!-- MODEL -->
+
+        <div class="result-stat">
+
+          <span>
+            Embedding Model
+          </span>
+
+          <strong>
+
+            {{
+              formatModelName(
+                result.embedding_model
+              )
+            }}
+
+          </strong>
+
+        </div>
+
+
+        <!-- RETRIEVAL TIME -->
+
+        <div class="result-stat">
+
+          <span>
+            Retrieval Time
+          </span>
+
+          <strong>
+
+            {{
+              formatTime(
+                result.retrieval_time
+              )
+            }}
+            s
+
+          </strong>
+
+        </div>
+
+
+        <!-- TOP SIMILARITY -->
+
+        <div class="result-stat">
+
+          <span>
+            Top Similarity
+          </span>
+
+          <strong>
+    {{
+      formatScore(
+        result.top_similarity_score
+      )
+    }}
+  </strong>
+
+        </div>
+
+
+        <!-- AVERAGE SIMILARITY -->
+
+        <div class="result-stat">
+
+          <span>
+            Average Similarity
+          </span>
+
+          <strong>
+    {{
+      formatScore(
+        result.average_similarity_score
+      )
+    }}
+  </strong>
+
+        </div>
+
+      </div>
+
+
+      <!-- SOURCES -->
+
+      @if (
+        result.sources &&
+        result.sources.length > 0
+      ) {
+
+        <div class="sources-section">
+
+          <div class="section-heading">
+
+            <div>
+
+              <h3>
+                Retrieved Sources
+              </h3>
+
+              <p>
+                Academic chunks used as context
+                for the generated response.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div class="sources-list">
+
+            @for (
+              source of result.sources;
+              track source.rank
+            ) {
+
+              <div class="source-card">
+
+                <div class="source-header">
+
+                  <div>
+
+                    <span class="source-rank">
+
+                      Source {{ source.rank }}
+
+                    </span>
+
+
+                    <h4>
+
+                      {{ source.source }}
+
+                    </h4>
+
+                  </div>
+
+
+                  <div class="source-score">
+
+                    Similarity
+
+                    <strong>
+
+                      {{
+                        formatScore(
+                          source.score
+                        )
+                      }}
+
+                    </strong>
+
+                  </div>
+
+                </div>
+
+
+                <div class="source-meta">
+
+                  <span>
+
+                    Page:
+
+                    <strong>
+
+                      {{ source.page }}
+
+                    </strong>
+
+                  </span>
+
+
+                  <span>
+
+                    Chunk:
+
+                    <strong>
+
+                      {{ source.chunk_id }}
+
+                    </strong>
+
+                  </span>
+
+                </div>
+
+              </div>
+
+            }
+
+          </div>
+
+        </div>
+
+      }
+
+    </div>
+
+  }
+
+</section>

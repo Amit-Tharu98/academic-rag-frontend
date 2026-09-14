@@ -1,0 +1,1038 @@
+<div class="compare-page">
+
+  <!-- ====================================== -->
+  <!-- Page Header -->
+  <!-- ====================================== -->
+
+  <div class="page-header">
+
+    <h1>
+      Compare Embedding Models
+    </h1>
+
+    <p>
+      Compare Sentence Transformer,
+      BGE and OpenAI under the same
+      retrieval conditions.
+    </p>
+
+  </div>
+
+
+  <!-- ====================================== -->
+  <!-- Comparison Source -->
+  <!-- ====================================== -->
+
+  <section class="mode-card">
+
+    <div class="mode-heading">
+
+      <h2>
+        Comparison Source
+      </h2>
+
+      <p>
+        Choose the fixed research corpus
+        or your own uploaded PDF.
+      </p>
+
+    </div>
+
+
+    <div class="mode-buttons">
+
+      <button
+        type="button"
+        class="mode-button"
+        [class.active]="
+          comparisonMode === 'research'
+        "
+        (click)="setMode('research')"
+      >
+        Research Corpus
+      </button>
+
+
+      <button
+        type="button"
+        class="mode-button"
+        [class.active]="
+          comparisonMode === 'uploaded'
+        "
+        (click)="setMode('uploaded')"
+      >
+        Uploaded Document
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- ====================================== -->
+  <!-- Uploaded Document Section -->
+  <!-- ====================================== -->
+
+  @if (
+    comparisonMode === 'uploaded'
+  ) {
+
+    <section class="upload-section">
+
+      <div class="section-heading">
+
+        <h2>
+          Upload Academic Document
+        </h2>
+
+        <p>
+          Upload one PDF and compare how
+          all three embedding models retrieve
+          evidence from the same document.
+        </p>
+
+      </div>
+
+
+      <div class="upload-card">
+
+        <label
+          class="file-upload"
+          for="comparePdf"
+        >
+
+          <div class="upload-icon">
+            ↑
+          </div>
+
+
+          @if (!selectedFile) {
+
+            <strong>
+              Select PDF document
+            </strong>
+
+            <span>
+              Click here to choose a file
+            </span>
+
+          } @else {
+
+            <strong>
+              {{ selectedFile.name }}
+            </strong>
+
+            <span>
+              {{
+                formatFileSize(
+                  selectedFile.size
+                )
+              }}
+            </span>
+
+          }
+
+        </label>
+
+
+        <input
+          id="comparePdf"
+          class="file-input"
+          type="file"
+          accept=".pdf,application/pdf"
+          (change)="onFileSelected($event)"
+        />
+
+
+        @if (uploadError) {
+
+          <div class="error-message">
+            {{ uploadError }}
+          </div>
+
+        }
+
+
+        <button
+          type="button"
+          class="upload-button"
+          [disabled]="
+            !selectedFile ||
+            uploading
+          "
+          (click)="uploadDocument()"
+        >
+
+          @if (uploading) {
+
+            Processing PDF...
+
+          } @else {
+
+            Upload & Process
+
+          }
+
+        </button>
+
+
+        @if (uploadResult) {
+
+          <div class="uploaded-document">
+
+            <div>
+
+              <strong>
+                {{ uploadResult.filename }}
+              </strong>
+
+              <span>
+                {{ uploadResult.status }}
+              </span>
+
+            </div>
+
+
+            <div class="upload-stats">
+
+              <span>
+                Pages:
+                <strong>
+                  {{ uploadResult.pages }}
+                </strong>
+              </span>
+
+
+              <span>
+                Chunks:
+                <strong>
+                  {{ uploadResult.chunks }}
+                </strong>
+              </span>
+
+
+              <span>
+                Chunk Size:
+                <strong>
+                  {{ uploadResult.chunk_size }}
+                </strong>
+              </span>
+
+
+              <span>
+                Overlap:
+                <strong>
+                  {{ uploadResult.chunk_overlap }}
+                </strong>
+              </span>
+
+            </div>
+
+          </div>
+
+        }
+
+      </div>
+
+    </section>
+
+
+    <!-- ====================================== -->
+    <!-- Uploaded Comparison Task -->
+    <!-- ====================================== -->
+
+    <section class="task-card">
+
+      <div class="section-heading">
+
+        <h2>
+          Comparison Task
+        </h2>
+
+        <p>
+          Compare question answering
+          or topic-focused summarisation.
+        </p>
+
+      </div>
+
+
+      <div class="task-buttons">
+
+        <button
+          type="button"
+          class="task-button"
+          [class.active]="
+            comparisonTask === 'qa'
+          "
+          (click)="
+            setComparisonTask('qa')
+          "
+        >
+          Question Answering
+        </button>
+
+
+        <button
+          type="button"
+          class="task-button"
+          [class.active]="
+            comparisonTask === 'summary'
+          "
+          (click)="
+            setComparisonTask('summary')
+          "
+        >
+          Topic Summary
+        </button>
+
+      </div>
+
+    </section>
+
+  }
+
+
+  <!-- ====================================== -->
+  <!-- Research Corpus Q&A -->
+  <!-- OR Uploaded Document Q&A -->
+  <!-- ====================================== -->
+
+  @if (
+    comparisonMode === 'research' ||
+    (
+      comparisonMode === 'uploaded' &&
+      comparisonTask === 'qa'
+    )
+  ) {
+
+    <section class="compare-card">
+
+      <div class="input-heading">
+
+        <h2>
+
+          @if (
+            comparisonMode === 'research'
+          ) {
+
+            Research Corpus Comparison
+
+          } @else {
+
+            Uploaded Document Comparison
+
+          }
+
+        </h2>
+
+
+        <p>
+
+          @if (
+            comparisonMode === 'research'
+          ) {
+
+            Run the same academic question
+            through all three embedding models.
+
+          } @else {
+
+            Ask the same question against the
+            uploaded PDF using all three models.
+
+          }
+
+        </p>
+
+      </div>
+
+
+      <div class="compare-options">
+
+        <div class="form-group">
+
+          <label for="compareTopK">
+            Top-K
+          </label>
+
+
+          <select
+            id="compareTopK"
+            [(ngModel)]="topK"
+          >
+
+            <option [ngValue]="3">
+              3
+            </option>
+
+            <option [ngValue]="5">
+              5
+            </option>
+
+            <option [ngValue]="10">
+              10
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="form-group question-group"
+        ngSkipHydration
+      >
+
+        <label for="compareQuestion">
+          Question
+        </label>
+
+
+        <textarea
+          id="compareQuestion"
+          rows="5"
+          [(ngModel)]="question"
+          placeholder="Enter the same question for all three embedding models"
+        ></textarea>
+
+      </div>
+
+
+      @if (errorMessage) {
+
+        <div class="error-message">
+          {{ errorMessage }}
+        </div>
+
+      }
+
+
+      <button
+        type="button"
+        class="compare-button"
+        [disabled]="
+          loading ||
+          (
+            comparisonMode ===
+            'uploaded' &&
+            !uploadResult
+          )
+        "
+        (click)="compareModels()"
+      >
+
+        @if (loading) {
+
+          Comparing Models...
+
+        } @else {
+
+          Compare Models
+
+        }
+
+      </button>
+
+    </section>
+
+  }
+
+
+  <!-- ====================================== -->
+  <!-- Q&A Comparison Results -->
+  <!-- ====================================== -->
+
+  @if (
+    comparisonResult &&
+    (
+      comparisonMode === 'research' ||
+      comparisonTask === 'qa'
+    )
+  ) {
+
+    <section class="results-section">
+
+      <div class="section-heading">
+
+        <h2>
+          Model Comparison
+        </h2>
+
+        <p>
+          All models use the same question
+          and Top-K setting.
+        </p>
+
+      </div>
+
+
+      <div class="model-grid">
+
+        @for (
+          result of comparisonResult.results;
+          track result.embedding_model
+        ) {
+
+          <div class="model-card">
+
+            <!-- Model Name -->
+
+            <div class="model-header">
+
+              <h3>
+                {{
+                  formatModelName(
+                    result.embedding_model
+                  )
+                }}
+              </h3>
+
+            </div>
+
+
+            <!-- Generated Answer -->
+
+            <div class="model-answer">
+
+              <span>
+                Generated Answer
+              </span>
+
+              <p>
+                {{ result.answer }}
+              </p>
+
+            </div>
+
+
+            <!-- Metrics -->
+
+            <div class="metrics-grid">
+
+              <div class="metric">
+
+                <span>
+                  Retrieval Time
+                </span>
+
+                <strong>
+                  {{
+                    formatTime(
+                      result.retrieval_time
+                    )
+                  }} s
+                </strong>
+
+              </div>
+
+
+              <div class="metric">
+
+                <span>
+                  Top Similarity
+                </span>
+
+                <strong>
+                  {{
+                    formatScore(
+                      result.top_similarity_score
+                    )
+                  }}
+                </strong>
+
+              </div>
+
+
+              <div class="metric">
+
+                <span>
+                  Average Similarity
+                </span>
+
+                <strong>
+                  {{
+                    formatScore(
+                      result.average_similarity_score
+                    )
+                  }}
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            <!-- Sources -->
+
+            <div class="sources">
+
+              <h4>
+                Retrieved Sources
+              </h4>
+
+
+              @for (
+                source of result.sources;
+                track source.chunk_id
+              ) {
+
+                <div class="source-item">
+
+                  <div class="source-top">
+
+                    <strong>
+                      Source {{ source.rank }}
+                    </strong>
+
+                    <span>
+                      {{
+                        formatScore(
+                          source.score
+                        )
+                      }}
+                    </span>
+
+                  </div>
+
+
+                  <div class="source-meta">
+
+                    <span>
+                      {{ source.source }}
+                    </span>
+
+                    <span>
+                      Page {{ source.page }}
+                    </span>
+
+                  </div>
+
+                </div>
+
+              }
+
+            </div>
+
+          </div>
+
+        }
+
+      </div>
+
+
+      <!-- Comparison Analysis -->
+
+      @if (
+        comparisonResult.comparison_summary
+      ) {
+
+        <div class="comparison-summary">
+
+          <div class="section-heading">
+
+            <h2>
+              Comparison Analysis
+            </h2>
+
+            <p>
+              Summary of agreements,
+              differences, retrieved evidence
+              and retrieval behaviour.
+            </p>
+
+          </div>
+
+
+          <div class="summary-card">
+
+            <p>
+              {{
+                comparisonResult
+                  .comparison_summary
+              }}
+            </p>
+
+          </div>
+
+        </div>
+
+      }
+
+    </section>
+
+  }
+
+
+  <!-- ====================================== -->
+  <!-- Topic Summary Comparison Form -->
+  <!-- ====================================== -->
+
+  @if (
+    comparisonMode === 'uploaded' &&
+    comparisonTask === 'summary'
+  ) {
+
+    <section class="compare-card">
+
+      <div class="input-heading">
+
+        <h2>
+          Topic Summary Comparison
+        </h2>
+
+        <p>
+          Compare topic-focused summaries
+          generated from the same uploaded
+          PDF using all three embedding models.
+        </p>
+
+      </div>
+
+
+      <div class="summary-options">
+
+        <!-- Summary Length -->
+
+        <div class="form-group">
+
+          <label for="summaryLength">
+            Summary Length
+          </label>
+
+
+          <select
+            id="summaryLength"
+            [(ngModel)]="summaryLength"
+          >
+
+            <option value="short">
+              Short
+            </option>
+
+            <option value="medium">
+              Medium
+            </option>
+
+            <option value="detailed">
+              Detailed
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Top-K -->
+
+        <div class="form-group">
+
+          <label for="summaryTopK">
+            Top-K
+          </label>
+
+
+          <select
+            id="summaryTopK"
+            [(ngModel)]="summaryTopK"
+          >
+
+            <option [ngValue]="3">
+              3
+            </option>
+
+            <option [ngValue]="5">
+              5
+            </option>
+
+            <option [ngValue]="10">
+              10
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <!-- Topic -->
+
+      <div
+        class="form-group"
+        ngSkipHydration
+      >
+
+        <label for="summaryTopic">
+          Topic
+        </label>
+
+
+        <textarea
+          id="summaryTopic"
+          rows="5"
+          [(ngModel)]="summaryTopic"
+          placeholder="For example: What representation biases are discussed in sentence transformers?"
+        ></textarea>
+
+      </div>
+
+
+      @if (summaryError) {
+
+        <div class="error-message">
+          {{ summaryError }}
+        </div>
+
+      }
+
+
+      <button
+        type="button"
+        class="compare-button"
+        [disabled]="
+          summaryLoading ||
+          !uploadResult
+        "
+        (click)="compareTopicSummary()"
+      >
+
+        @if (summaryLoading) {
+
+          Comparing Summaries...
+
+        } @else {
+
+          Compare Topic Summaries
+
+        }
+
+      </button>
+
+    </section>
+
+  }
+
+
+  <!-- ====================================== -->
+  <!-- Topic Summary Comparison Results -->
+  <!-- ====================================== -->
+
+  @if (summaryComparisonResult) {
+
+    <section class="results-section">
+
+      <div class="section-heading">
+
+        <h2>
+          Topic Summary Comparison
+        </h2>
+
+        <p>
+          Each embedding model retrieves
+          relevant chunks for the same topic
+          and generates a focused summary.
+        </p>
+
+      </div>
+
+
+      <div class="model-grid">
+
+        @for (
+          result of summaryComparisonResult.results;
+          track result.embedding_model
+        ) {
+
+          <div class="model-card">
+
+            <!-- Model -->
+
+            <div class="model-header">
+
+              <h3>
+                {{
+                  formatModelName(
+                    result.embedding_model
+                  )
+                }}
+              </h3>
+
+            </div>
+
+
+            <!-- Generated Summary -->
+
+            <div class="model-answer">
+
+              <span>
+                Generated Summary
+              </span>
+
+              <p>
+                {{ result.summary }}
+              </p>
+
+            </div>
+
+
+            <!-- Retrieval Metrics -->
+
+            <div class="metrics-grid">
+
+              <div class="metric">
+
+                <span>
+                  Retrieval Time
+                </span>
+
+                <strong>
+                  {{
+                    formatTime(
+                      result.retrieval_time
+                    )
+                  }} s
+                </strong>
+
+              </div>
+
+
+              <div class="metric">
+
+                <span>
+                  Top Similarity
+                </span>
+
+                <strong>
+                  {{
+                    formatScore(
+                      result.top_similarity_score
+                    )
+                  }}
+                </strong>
+
+              </div>
+
+
+              <div class="metric">
+
+                <span>
+                  Average Similarity
+                </span>
+
+                <strong>
+                  {{
+                    formatScore(
+                      result.average_similarity_score
+                    )
+                  }}
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            <!-- Sources -->
+
+            <div class="sources">
+
+              <h4>
+                Retrieved Sources
+              </h4>
+
+
+              @for (
+                source of result.sources;
+                track source.chunk_id
+              ) {
+
+                <div class="source-item">
+
+                  <div class="source-top">
+
+                    <strong>
+                      Source {{ source.rank }}
+                    </strong>
+
+                    <span>
+                      {{
+                        formatScore(
+                          source.score
+                        )
+                      }}
+                    </span>
+
+                  </div>
+
+
+                  <div class="source-meta">
+
+                    <span>
+                      {{ source.source }}
+                    </span>
+
+                    <span>
+                      Page {{ source.page }}
+                    </span>
+
+                  </div>
+
+                </div>
+
+              }
+
+            </div>
+
+          </div>
+
+        }
+
+      </div>
+
+
+      <!-- Topic Summary Comparison Analysis -->
+
+      @if (
+        summaryComparisonResult.comparison_summary
+      ) {
+
+        <div class="comparison-summary">
+
+          <div class="section-heading">
+
+            <h2>
+              Comparison Analysis
+            </h2>
+
+            <p>
+              Summary of common findings,
+              differences and retrieval behaviour
+              across the embedding models.
+            </p>
+
+          </div>
+
+
+          <div class="summary-card">
+
+            <p>
+              {{
+                summaryComparisonResult
+                  .comparison_summary
+              }}
+            </p>
+
+          </div>
+
+        </div>
+
+      }
+
+    </section>
+
+  }
+
+</div>

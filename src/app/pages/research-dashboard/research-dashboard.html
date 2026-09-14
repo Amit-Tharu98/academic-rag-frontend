@@ -1,0 +1,884 @@
+<section class="dashboard">
+
+  <!-- PAGE HEADING -->
+
+  <div class="page-heading">
+
+    <div>
+
+      <h2>
+        Research Results
+      </h2>
+
+      <p>
+        Comparative evaluation of embedding models
+        for retrieval-augmented academic document analysis.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- LOADING -->
+
+  @if (loading) {
+
+    <div class="state-message">
+      Loading research results...
+    </div>
+
+  }
+
+
+  <!-- ERROR -->
+
+  @if (errorMessage) {
+
+    <div class="error-message">
+      {{ errorMessage }}
+    </div>
+
+  }
+
+
+  <!-- OVERVIEW -->
+
+  @if (overview; as data) {
+
+    <div class="stats-grid">
+
+      <div class="stat-card">
+
+        <span>
+          Documents
+        </span>
+
+        <strong>
+          {{ data.corpus.documents }}
+        </strong>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <span>
+          Pages
+        </span>
+
+        <strong>
+          {{ data.corpus.pages }}
+        </strong>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <span>
+          Chunks
+        </span>
+
+        <strong>
+          {{ data.corpus.chunks }}
+        </strong>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <span>
+          Evaluation Questions
+        </span>
+
+        <strong>
+          {{ data.corpus.evaluation_questions }}
+        </strong>
+
+      </div>
+
+    </div>
+
+
+    <!-- KEY FINDINGS -->
+
+    <div class="findings-grid">
+
+      <div class="finding-card">
+
+        <span>
+          Best Top-5 Accuracy
+        </span>
+
+        <strong>
+          {{
+            formatModelName(
+              data
+                .retrieval_findings
+                .best_top5_accuracy
+                .model
+            )
+          }}
+        </strong>
+
+        <p>
+          {{
+            formatPercent(
+              data
+                .retrieval_findings
+                .best_top5_accuracy
+                .value
+            )
+          }}
+        </p>
+
+      </div>
+
+
+      <div class="finding-card">
+
+        <span>
+          Best MRR
+        </span>
+
+        <strong>
+          {{
+            formatModelName(
+              data
+                .retrieval_findings
+                .best_mrr
+                .model
+            )
+          }}
+        </strong>
+
+        <p>
+          {{
+            formatNumber(
+              data
+                .retrieval_findings
+                .best_mrr
+                .value
+            )
+          }}
+        </p>
+
+      </div>
+
+
+      <div class="finding-card">
+
+        <span>
+          Fastest Model
+        </span>
+
+        <strong>
+          {{
+            formatModelName(
+              data
+                .retrieval_findings
+                .fastest_model
+                .model
+            )
+          }}
+        </strong>
+
+        <p>
+          {{
+            data
+              .retrieval_findings
+              .fastest_model
+              .retrieval_time
+              | number:'1.4-4'
+          }}
+          s
+        </p>
+
+      </div>
+
+
+      <div class="finding-card">
+
+        <span>
+          Best ROUGE-L
+        </span>
+
+        <strong>
+          {{
+            formatModelName(
+              data
+                .generation_findings
+                .best_rougeL
+                .model
+            )
+          }}
+        </strong>
+
+        <p>
+          {{
+            formatNumber(
+              data
+                .generation_findings
+                .best_rougeL
+                .value
+            )
+          }}
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <!-- INTERPRETATION -->
+
+    <div class="interpretation-card">
+
+      <h3>
+        Overall Interpretation
+      </h3>
+
+      <p>
+        {{ data.interpretation }}
+      </p>
+
+    </div>
+
+  }
+
+
+  <!-- =============================================
+       VISUAL COMPARISON
+  ============================================== -->
+
+  @if (!loading && retrievalResults.length > 0) {
+
+    <div class="visualisation-section">
+
+      <div class="section-heading">
+
+        <div>
+
+          <h3>
+            Retrieval Performance
+          </h3>
+
+          <p>
+            Visual comparison of retrieval effectiveness
+            and latency across embedding models.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="chart-grid">
+
+
+        <!-- TOP 5 ACCURACY -->
+
+        <div class="chart-card">
+
+          <div class="chart-title">
+
+            <h4>
+              Top-5 Accuracy
+            </h4>
+
+            <span>
+              Higher is better
+            </span>
+
+          </div>
+
+
+          <div class="bar-chart">
+
+            @for (
+              result of retrievalResults;
+              track result.model
+            ) {
+
+              <div class="bar-item">
+
+                <div class="bar-label">
+
+                  <span>
+                    {{
+                      formatModelName(
+                        result.model
+                      )
+                    }}
+                  </span>
+
+                  <strong>
+                    {{
+                      formatPercent(
+                        result.top5_accuracy
+                      )
+                    }}
+                  </strong>
+
+                </div>
+
+
+                <div class="bar-track">
+
+                  <div
+                    class="bar-fill"
+                    [style.width.%]="
+                      getTop5Width(
+                        result.top5_accuracy
+                      )
+                    ">
+                  </div>
+
+                </div>
+
+              </div>
+
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- MRR -->
+
+        <div class="chart-card">
+
+          <div class="chart-title">
+
+            <h4>
+              Mean Reciprocal Rank
+            </h4>
+
+            <span>
+              Higher is better
+            </span>
+
+          </div>
+
+
+          <div class="bar-chart">
+
+            @for (
+              result of retrievalResults;
+              track result.model
+            ) {
+
+              <div class="bar-item">
+
+                <div class="bar-label">
+
+                  <span>
+                    {{
+                      formatModelName(
+                        result.model
+                      )
+                    }}
+                  </span>
+
+                  <strong>
+                    {{
+                      formatNumber(
+                        result.reciprocal_rank
+                      )
+                    }}
+                  </strong>
+
+                </div>
+
+
+                <div class="bar-track">
+
+                  <div
+                    class="bar-fill"
+                    [style.width.%]="
+                      getMrrWidth(
+                        result.reciprocal_rank
+                      )
+                    ">
+                  </div>
+
+                </div>
+
+              </div>
+
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- RETRIEVAL TIME -->
+
+        <div class="chart-card">
+
+          <div class="chart-title">
+
+            <h4>
+              Retrieval Time
+            </h4>
+
+            <span>
+              Lower is better
+            </span>
+
+          </div>
+
+
+          <div class="bar-chart">
+
+            @for (
+              result of retrievalResults;
+              track result.model
+            ) {
+
+              <div class="bar-item">
+
+                <div class="bar-label">
+
+                  <span>
+                    {{
+                      formatModelName(
+                        result.model
+                      )
+                    }}
+                  </span>
+
+                  <strong>
+                    {{
+                      result.retrieval_time
+                        | number:'1.4-4'
+                    }}
+                    s
+                  </strong>
+
+                </div>
+
+
+                <div class="bar-track">
+
+                  <div
+                    class="bar-fill time-bar"
+                    [style.width.%]="
+                      getRetrievalTimeWidth(
+                        result.retrieval_time
+                      )
+                    ">
+                  </div>
+
+                </div>
+
+              </div>
+
+            }
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  }
+
+
+  <!-- =============================================
+       GENERATION VISUALISATION
+  ============================================== -->
+
+  @if (!loading && generationResults.length > 0) {
+
+    <div class="visualisation-section">
+
+      <div class="section-heading">
+
+        <div>
+
+          <h3>
+            Generation Performance
+          </h3>
+
+          <p>
+            ROUGE score comparison for generated
+            academic responses.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="rouge-grid">
+
+        @for (
+          result of generationResults;
+          track result.model
+        ) {
+
+          <div class="rouge-card">
+
+            <h4>
+              {{
+                formatModelName(
+                  result.model
+                )
+              }}
+            </h4>
+
+
+            <!-- ROUGE 1 -->
+
+            <div class="rouge-item">
+
+              <div class="bar-label">
+
+                <span>
+                  ROUGE-1
+                </span>
+
+                <strong>
+                  {{
+                    formatNumber(
+                      result.rouge1
+                    )
+                  }}
+                </strong>
+
+              </div>
+
+
+              <div class="bar-track">
+
+                <div
+                  class="bar-fill rouge-one"
+                  [style.width.%]="
+                    getRougeWidth(
+                      result.rouge1
+                    )
+                  ">
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- ROUGE 2 -->
+
+            <div class="rouge-item">
+
+              <div class="bar-label">
+
+                <span>
+                  ROUGE-2
+                </span>
+
+                <strong>
+                  {{
+                    formatNumber(
+                      result.rouge2
+                    )
+                  }}
+                </strong>
+
+              </div>
+
+
+              <div class="bar-track">
+
+                <div
+                  class="bar-fill rouge-two"
+                  [style.width.%]="
+                    getRougeWidth(
+                      result.rouge2
+                    )
+                  ">
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- ROUGE L -->
+
+            <div class="rouge-item">
+
+              <div class="bar-label">
+
+                <span>
+                  ROUGE-L
+                </span>
+
+                <strong>
+                  {{
+                    formatNumber(
+                      result.rougeL
+                    )
+                  }}
+                </strong>
+
+              </div>
+
+
+              <div class="bar-track">
+
+                <div
+                  class="bar-fill rouge-l"
+                  [style.width.%]="
+                    getRougeWidth(
+                      result.rougeL
+                    )
+                  ">
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        }
+
+      </div>
+
+    </div>
+
+  }
+
+
+  <!-- =============================================
+       RETRIEVAL TABLE
+  ============================================== -->
+
+  <div class="results-section">
+
+    <div class="section-header">
+
+      <h3>
+        Retrieval Evaluation
+      </h3>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Model</th>
+            <th>Precision@1</th>
+            <th>Recall@5</th>
+            <th>Top-5 Accuracy</th>
+            <th>MRR</th>
+            <th>Retrieval Time</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          @for (
+            result of retrievalResults;
+            track result.model
+          ) {
+
+            <tr>
+
+              <td class="model-name">
+
+                {{
+                  formatModelName(
+                    result.model
+                  )
+                }}
+
+              </td>
+
+
+              <td>
+
+                {{
+                  formatNumber(
+                    result['precision@1']
+                  )
+                }}
+
+              </td>
+
+
+              <td>
+
+                {{
+                  formatNumber(
+                    result['recall@5']
+                  )
+                }}
+
+              </td>
+
+
+              <td>
+
+                {{
+                  formatPercent(
+                    result.top5_accuracy
+                  )
+                }}
+
+              </td>
+
+
+              <td>
+
+                {{
+                  formatNumber(
+                    result.reciprocal_rank
+                  )
+                }}
+
+              </td>
+
+
+              <td>
+
+                {{
+                  result.retrieval_time
+                    | number:'1.4-4'
+                }}
+                s
+
+              </td>
+
+            </tr>
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+  <!-- =============================================
+       GENERATION TABLE
+  ============================================== -->
+
+  <div class="results-section">
+
+    <div class="section-header">
+
+      <h3>
+        Generation Evaluation
+      </h3>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Model</th>
+            <th>ROUGE-1</th>
+            <th>ROUGE-2</th>
+            <th>ROUGE-L</th>
+            <th>Retrieval Time</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          @for (
+            result of generationResults;
+            track result.model
+          ) {
+
+            <tr>
+
+              <td class="model-name">
+
+                {{
+                  formatModelName(
+                    result.model
+                  )
+                }}
+
+              </td>
+
+
+              <td>
+                {{
+                  formatNumber(
+                    result.rouge1
+                  )
+                }}
+              </td>
+
+
+              <td>
+                {{
+                  formatNumber(
+                    result.rouge2
+                  )
+                }}
+              </td>
+
+
+              <td>
+                {{
+                  formatNumber(
+                    result.rougeL
+                  )
+                }}
+              </td>
+
+
+              <td>
+
+                {{
+                  result.retrieval_time
+                    | number:'1.4-4'
+                }}
+                s
+
+              </td>
+
+            </tr>
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
