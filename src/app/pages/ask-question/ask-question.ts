@@ -1,200 +1,134 @@
-import {
-  ChangeDetectorRef,
-  Component,
-} from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 
-import {
-  CommonModule,
-} from '@angular/common';
+import { ApiService } from '../../services/api';
 
-import {
-  FormsModule,
-} from '@angular/forms';
+type EmbeddingModel = 'sentence_transformer' | 'bge' | 'openai';
 
-import {
-  ApiService,
-} from '../../services/api';
+interface RetrievedSource {
+  rank: number;
+  chunk_id: string;
+  source: string;
+  page: number;
+  score: number;
+}
 
+interface AskQuestionResponse {
+  embedding_model: EmbeddingModel;
+  answer: string;
+  retrieval_time: number;
+  top_similarity_score?: number | null;
+  average_similarity_score?: number | null;
+  sources: RetrievedSource[];
+}
 
 @Component({
   selector: 'app-ask-question',
-
   standalone: true,
-
-  imports: [
-    CommonModule,
-    FormsModule,
-  ],
-
+  imports: [CommonModule, FormsModule],
   templateUrl: './ask-question.html',
-
   styleUrl: './ask-question.scss',
 })
 export class AskQuestion {
-
-  selectedModel = 'sentence_transformer';
-
+  selectedModel: EmbeddingModel = 'sentence_transformer';
   question = '';
-
   topK = 5;
 
   loading = false;
-
   errorMessage = '';
+  result: AskQuestionResponse | null = null;
 
-  result: any = null;
+  readonly modelOptions: Array<{ value: EmbeddingModel; label: string; description: string }> = [
+    {
+      value: 'sentence_transformer',
+      label: 'Sentence Transformer',
+      description: 'Fast local embedding model',
+    },
+    {
+      value: 'bge',
+      label: 'BGE',
+      description: 'Strong open-source retrieval model',
+    },
+    {
+      value: 'openai',
+      label: 'OpenAI',
+      description: 'Best overall benchmark performance',
+    },
+  ];
 
+  readonly topKOptions = [3, 5, 10];
+
+  readonly exampleQuestions = [
+    'What are the main limitations of retrieval-augmented generation?',
+    'How do embedding models affect semantic retrieval quality?',
+    'What evaluation metrics are commonly used for RAG systems?',
+  ];
 
   constructor(
     private apiService: ApiService,
     private cdr: ChangeDetectorRef,
   ) {}
 
-
   askQuestion(): void {
-
-    const cleanQuestion =
-      this.question.trim();
-
+    const cleanQuestion = this.question.trim();
 
     if (!cleanQuestion) {
-
-      this.errorMessage =
-        'Please enter a question.';
-
+      this.errorMessage = 'Please enter a question before generating an answer.';
       return;
     }
 
-
     this.loading = true;
-
     this.errorMessage = '';
-
     this.result = null;
 
-
     const request = {
-
-      question:
-        cleanQuestion,
-
-      embedding_model:
-        this.selectedModel,
-
-      top_k:
-        Number(this.topK),
-
+      question: cleanQuestion,
+      embedding_model: this.selectedModel,
+      top_k: Number(this.topK),
     };
-
 
     this.apiService
       .askQuestion(request)
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        }),
+      )
       .subscribe({
-
-        next: (response: any) => {
-
-          console.log(
-            'Ask response:',
-            response
-          );
-
-          this.result =
-            response;
-
-          this.loading =
-            false;
-
-          this.cdr
-            .detectChanges();
-
+        next: (response: AskQuestionResponse) => {
+          this.result = response;
         },
-
-
         error: (error) => {
-
-          console.error(
-            'Ask API error:',
-            error
-          );
-
+          console.error('Ask question request failed:', error);
           this.errorMessage =
-            error?.error?.detail
-            ??
-            'Unable to generate an answer.';
-
-          this.loading =
-            false;
-
-          this.cdr
-            .detectChanges();
-
+            error?.error?.detail ?? 'Unable to generate an answer. Please try again.';
         },
-
       });
-
   }
 
-
-  formatModelName(
-    model: string,
-  ): string {
-
-    if (
-      model ===
-      'sentence_transformer'
-    ) {
-      return 'Sentence Transformer';
-    }
-
-    if (
-      model ===
-      'bge'
-    ) {
-      return 'BGE';
-    }
-
-    if (
-      model ===
-      'openai'
-    ) {
-      return 'OpenAI';
-    }
-
-    return model;
+  useExample(question: string): void {
+    this.question = question;
+    this.errorMessage = '';
   }
 
-
-  formatScore(
-    value: number | null | undefined,
-  ): string {
-
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      return '-';
-    }
-
-    return Number(
-      value
-    ).toFixed(4);
+  clearQuestion(): void {
+    this.question = '';
+    this.result = null;
+    this.errorMessage = '';
   }
 
-
-  formatTime(
-    value: number | null | undefined,
-  ): string {
-
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      return '-';
-    }
-
-    return Number(
-      value
-    ).toFixed(4);
+  formatModelName(model: string): string {
+    return this.modelOptions.find((option) => option.value === model)?.label ?? model;
   }
 
+  formatScore(value: number | null | undefined): string {
+    return value == null ? '-' : Number(value).toFixed(4);
+  }
+
+  formatTime(value: number | null | undefined): string {
+    return value == null ? '-' : Number(value).toFixed(4);
+  }
 }

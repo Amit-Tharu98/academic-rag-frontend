@@ -15,9 +15,9 @@ export class ApiService {
     private http: HttpClient,
   ) {}
 
-  // -----------------------------------------
+
   // Research APIs
-  // -----------------------------------------
+
 
   getResearchOverview(): Observable<any> {
     return this.http.get(
@@ -49,9 +49,9 @@ export class ApiService {
     );
   }
 
-  // -----------------------------------------
+
   // Existing corpus QA
-  // -----------------------------------------
+
 
   askQuestion(
     payload: any,
@@ -73,20 +73,19 @@ export class ApiService {
     );
   }
 
-  // -----------------------------------------
-  // Upload PDF
-  // -----------------------------------------
 
-  uploadPdf(
-    file: File,
+  // Upload PDF
+
+
+  uploadPdfs(
+    files: File[],
   ): Observable<any> {
 
     const formData = new FormData();
 
-    formData.append(
-      'file',
-      file,
-    );
+    files.forEach((file) => {
+      formData.append('files', file, file.name);
+    });
 
     return this.http.post(
       `${this.baseUrl}/upload`,
@@ -114,9 +113,9 @@ export class ApiService {
     );
   }
 
-  // -----------------------------------------
+
   // Summary
-  // -----------------------------------------
+
 
   generateSummary(
     payload: any,

@@ -1,884 +1,348 @@
 <section class="dashboard">
-
-  <!-- PAGE HEADING -->
-
-  <div class="page-heading">
-
-    <div>
-
-      <h2>
-        Research Results
-      </h2>
-
+  <header class="page-heading">
+    <div class="heading-copy">
+      <span class="eyebrow">Dissertation benchmark</span>
+      <h1>Research Results</h1>
       <p>
-        Comparative evaluation of embedding models
-        for retrieval-augmented academic document analysis.
+        Comparative evaluation of embedding models for retrieval-augmented
+        academic document analysis.
       </p>
-
     </div>
 
-  </div>
-
-
-  <!-- LOADING -->
+    @if (!loading && overview) {
+      <div class="benchmark-badge" aria-label="Evaluation benchmark size">
+        <span class="badge-dot"></span>
+        {{ overview.corpus.evaluation_questions }} evaluation questions
+      </div>
+    }
+  </header>
 
   @if (loading) {
-
-    <div class="state-message">
-      Loading research results...
+    <div class="loading-panel" role="status" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <div>
+        <strong>Loading research results</strong>
+        <p>Retrieving benchmark metrics and model comparisons...</p>
+      </div>
     </div>
-
   }
-
-
-  <!-- ERROR -->
 
   @if (errorMessage) {
-
-    <div class="error-message">
-      {{ errorMessage }}
+    <div class="error-panel" role="alert">
+      <div>
+        <strong>We could not load the results</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <button type="button" (click)="loadResearchData()">Try again</button>
     </div>
-
   }
-
-
-  <!-- OVERVIEW -->
 
   @if (overview; as data) {
+    <section class="stats-grid" aria-label="Research dataset overview">
+      @for (stat of corpusStats; track stat.label) {
+        <article class="stat-card">
+          <div class="stat-icon" aria-hidden="true">
+            @switch (stat.icon) {
+              @case ('document') {
+                <svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M10 12h5M10 16h5"/></svg>
+              }
+              @case ('pages') {
+                <svg viewBox="0 0 24 24"><path d="M8 4h9a2 2 0 0 1 2 2v12H8a3 3 0 0 0-3 3V7a3 3 0 0 1 3-3Z"/><path d="M8 18h11M9 8h6M9 12h6"/></svg>
+              }
+              @case ('chunks') {
+                <svg viewBox="0 0 24 24"><path d="M4 6h7v5H4zM13 6h7v5h-7zM4 13h7v5H4zM13 13h7v5h-7z"/></svg>
+              }
+              @case ('questions') {
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 0 1 4.7.7c0 1.8-2.5 2-2.5 3.7M12 17h.01"/></svg>
+              }
+            }
+          </div>
+          <div class="stat-copy">
+            <span class="stat-label">{{ stat.label }}</span>
+            <strong>{{ stat.value }}</strong>
+            <small>{{ stat.note }}</small>
+          </div>
+        </article>
+      }
+    </section>
 
-    <div class="stats-grid">
-
-      <div class="stat-card">
-
-        <span>
-          Documents
-        </span>
-
-        <strong>
-          {{ data.corpus.documents }}
-        </strong>
-
+    <section class="section-block" aria-labelledby="key-findings-title">
+      <div class="section-heading compact">
+        <div>
+          <span class="section-kicker">At a glance</span>
+          <h2 id="key-findings-title">Key Findings</h2>
+          <p>The strongest result for each main evaluation criterion.</p>
+        </div>
       </div>
 
+      <div class="findings-grid">
+        <article class="finding-card">
+          <span class="finding-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 19V9M12 19V5M19 19v-7"/><path d="m4 7 5-3 4 2 7-4"/></svg>
+          </span>
+          <div>
+            <span class="finding-label">Best Top-5 Accuracy</span>
+            <strong>{{ formatModelName(data.retrieval_findings.best_top5_accuracy.model) }}</strong>
+            <p>{{ formatPercent(data.retrieval_findings.best_top5_accuracy.value) }}</p>
+          </div>
+        </article>
 
-      <div class="stat-card">
+        <article class="finding-card">
+          <span class="finding-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 19h14M7 16l3-4 3 2 4-7"/><path d="m15 7 2-1 1 2"/></svg>
+          </span>
+          <div>
+            <span class="finding-label">Best Mean Reciprocal Rank</span>
+            <strong>{{ formatModelName(data.retrieval_findings.best_mrr.model) }}</strong>
+            <p>{{ formatNumber(data.retrieval_findings.best_mrr.value) }}</p>
+          </div>
+        </article>
 
-        <span>
-          Pages
-        </span>
+        <article class="finding-card">
+          <span class="finding-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 13 15 10M9 3h6M12 3v3"/></svg>
+          </span>
+          <div>
+            <span class="finding-label">Fastest Retrieval</span>
+            <strong>{{ formatModelName(data.retrieval_findings.fastest_model.model) }}</strong>
+            <p>{{ formatTime(data.retrieval_findings.fastest_model.retrieval_time) }}</p>
+          </div>
+        </article>
 
-        <strong>
-          {{ data.corpus.pages }}
-        </strong>
-
+        <article class="finding-card">
+          <span class="finding-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 4h14v13H9l-4 3z"/><path d="M9 8h6M9 12h4"/></svg>
+          </span>
+          <div>
+            <span class="finding-label">Best ROUGE-L</span>
+            <strong>{{ formatModelName(data.generation_findings.best_rougeL.model) }}</strong>
+            <p>{{ formatNumber(data.generation_findings.best_rougeL.value) }}</p>
+          </div>
+        </article>
       </div>
+    </section>
 
-
-      <div class="stat-card">
-
-        <span>
-          Chunks
-        </span>
-
-        <strong>
-          {{ data.corpus.chunks }}
-        </strong>
-
+    <article class="interpretation-card">
+      <div class="interpretation-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
       </div>
-
-
-      <div class="stat-card">
-
-        <span>
-          Evaluation Questions
-        </span>
-
-        <strong>
-          {{ data.corpus.evaluation_questions }}
-        </strong>
-
+      <div>
+        <h2>Overall Interpretation</h2>
+        <p>{{ data.interpretation }}</p>
       </div>
-
-    </div>
-
-
-    <!-- KEY FINDINGS -->
-
-    <div class="findings-grid">
-
-      <div class="finding-card">
-
-        <span>
-          Best Top-5 Accuracy
-        </span>
-
-        <strong>
-          {{
-            formatModelName(
-              data
-                .retrieval_findings
-                .best_top5_accuracy
-                .model
-            )
-          }}
-        </strong>
-
-        <p>
-          {{
-            formatPercent(
-              data
-                .retrieval_findings
-                .best_top5_accuracy
-                .value
-            )
-          }}
-        </p>
-
-      </div>
-
-
-      <div class="finding-card">
-
-        <span>
-          Best MRR
-        </span>
-
-        <strong>
-          {{
-            formatModelName(
-              data
-                .retrieval_findings
-                .best_mrr
-                .model
-            )
-          }}
-        </strong>
-
-        <p>
-          {{
-            formatNumber(
-              data
-                .retrieval_findings
-                .best_mrr
-                .value
-            )
-          }}
-        </p>
-
-      </div>
-
-
-      <div class="finding-card">
-
-        <span>
-          Fastest Model
-        </span>
-
-        <strong>
-          {{
-            formatModelName(
-              data
-                .retrieval_findings
-                .fastest_model
-                .model
-            )
-          }}
-        </strong>
-
-        <p>
-          {{
-            data
-              .retrieval_findings
-              .fastest_model
-              .retrieval_time
-              | number:'1.4-4'
-          }}
-          s
-        </p>
-
-      </div>
-
-
-      <div class="finding-card">
-
-        <span>
-          Best ROUGE-L
-        </span>
-
-        <strong>
-          {{
-            formatModelName(
-              data
-                .generation_findings
-                .best_rougeL
-                .model
-            )
-          }}
-        </strong>
-
-        <p>
-          {{
-            formatNumber(
-              data
-                .generation_findings
-                .best_rougeL
-                .value
-            )
-          }}
-        </p>
-
-      </div>
-
-    </div>
-
-
-    <!-- INTERPRETATION -->
-
-    <div class="interpretation-card">
-
-      <h3>
-        Overall Interpretation
-      </h3>
-
-      <p>
-        {{ data.interpretation }}
-      </p>
-
-    </div>
-
+    </article>
   }
-
-
-  <!-- =============================================
-       VISUAL COMPARISON
-  ============================================== -->
 
   @if (!loading && retrievalResults.length > 0) {
-
-    <div class="visualisation-section">
-
+    <section class="visualisation-section" aria-labelledby="retrieval-performance-title">
       <div class="section-heading">
-
         <div>
-
-          <h3>
-            Retrieval Performance
-          </h3>
-
-          <p>
-            Visual comparison of retrieval effectiveness
-            and latency across embedding models.
-          </p>
-
+          <span class="section-kicker">Retrieval benchmark</span>
+          <h2 id="retrieval-performance-title">Retrieval Performance</h2>
+          <p>Effectiveness and latency across the three embedding models.</p>
         </div>
-
       </div>
-
 
       <div class="chart-grid">
-
-
-        <!-- TOP 5 ACCURACY -->
-
-        <div class="chart-card">
-
+        <article class="chart-card">
           <div class="chart-title">
-
-            <h4>
-              Top-5 Accuracy
-            </h4>
-
-            <span>
-              Higher is better
-            </span>
-
+            <div>
+              <h3>Top-5 Accuracy</h3>
+              <p>Relevant result found within the first five retrieved chunks.</p>
+            </div>
+            <span class="direction positive">Higher is better</span>
           </div>
-
 
           <div class="bar-chart">
-
-            @for (
-              result of retrievalResults;
-              track result.model
-            ) {
-
+            @for (result of retrievalResults; track result.model) {
               <div class="bar-item">
-
                 <div class="bar-label">
-
-                  <span>
-                    {{
-                      formatModelName(
-                        result.model
-                      )
-                    }}
-                  </span>
-
-                  <strong>
-                    {{
-                      formatPercent(
-                        result.top5_accuracy
-                      )
-                    }}
-                  </strong>
-
+                  <span>{{ formatModelName(result.model) }}</span>
+                  <strong>{{ formatPercent(result.top5_accuracy) }}</strong>
                 </div>
-
-
-                <div class="bar-track">
-
-                  <div
-                    class="bar-fill"
-                    [style.width.%]="
-                      getTop5Width(
-                        result.top5_accuracy
-                      )
-                    ">
-                  </div>
-
+                <div class="bar-track" aria-hidden="true">
+                  <div class="bar-fill" [class.is-best]="isBestTop5(result)" [style.width.%]="getMetricWidth(result.top5_accuracy)"></div>
                 </div>
-
               </div>
-
             }
-
           </div>
+        </article>
 
-        </div>
-
-
-        <!-- MRR -->
-
-        <div class="chart-card">
-
+        <article class="chart-card">
           <div class="chart-title">
-
-            <h4>
-              Mean Reciprocal Rank
-            </h4>
-
-            <span>
-              Higher is better
-            </span>
-
+            <div>
+              <h3>Mean Reciprocal Rank</h3>
+              <p>Rewards models that rank the first relevant result higher.</p>
+            </div>
+            <span class="direction positive">Higher is better</span>
           </div>
-
 
           <div class="bar-chart">
-
-            @for (
-              result of retrievalResults;
-              track result.model
-            ) {
-
+            @for (result of retrievalResults; track result.model) {
               <div class="bar-item">
-
                 <div class="bar-label">
-
-                  <span>
-                    {{
-                      formatModelName(
-                        result.model
-                      )
-                    }}
-                  </span>
-
-                  <strong>
-                    {{
-                      formatNumber(
-                        result.reciprocal_rank
-                      )
-                    }}
-                  </strong>
-
+                  <span>{{ formatModelName(result.model) }}</span>
+                  <strong>{{ formatNumber(result.reciprocal_rank) }}</strong>
                 </div>
-
-
-                <div class="bar-track">
-
-                  <div
-                    class="bar-fill"
-                    [style.width.%]="
-                      getMrrWidth(
-                        result.reciprocal_rank
-                      )
-                    ">
-                  </div>
-
+                <div class="bar-track" aria-hidden="true">
+                  <div class="bar-fill" [class.is-best]="isBestMrr(result)" [style.width.%]="getMetricWidth(result.reciprocal_rank)"></div>
                 </div>
-
               </div>
-
             }
-
           </div>
+        </article>
 
-        </div>
-
-
-        <!-- RETRIEVAL TIME -->
-
-        <div class="chart-card">
-
+        <article class="chart-card">
           <div class="chart-title">
-
-            <h4>
-              Retrieval Time
-            </h4>
-
-            <span>
-              Lower is better
-            </span>
-
+            <div>
+              <h3>Retrieval Time</h3>
+              <p>Average time required to retrieve relevant document chunks.</p>
+            </div>
+            <span class="direction neutral">Lower is better</span>
           </div>
-
 
           <div class="bar-chart">
-
-            @for (
-              result of retrievalResults;
-              track result.model
-            ) {
-
+            @for (result of retrievalResults; track result.model) {
               <div class="bar-item">
-
                 <div class="bar-label">
-
-                  <span>
-                    {{
-                      formatModelName(
-                        result.model
-                      )
-                    }}
-                  </span>
-
-                  <strong>
-                    {{
-                      result.retrieval_time
-                        | number:'1.4-4'
-                    }}
-                    s
-                  </strong>
-
+                  <span>{{ formatModelName(result.model) }}</span>
+                  <strong>{{ formatTime(result.retrieval_time) }}</strong>
                 </div>
-
-
-                <div class="bar-track">
-
-                  <div
-                    class="bar-fill time-bar"
-                    [style.width.%]="
-                      getRetrievalTimeWidth(
-                        result.retrieval_time
-                      )
-                    ">
-                  </div>
-
+                <div class="bar-track" aria-hidden="true">
+                  <div class="bar-fill time-bar" [class.is-best]="isFastest(result)" [style.width.%]="getRetrievalTimeWidth(result.retrieval_time)"></div>
                 </div>
-
               </div>
-
             }
-
           </div>
-
-        </div>
-
+        </article>
       </div>
-
-    </div>
-
+    </section>
   }
-
-
-  <!-- =============================================
-       GENERATION VISUALISATION
-  ============================================== -->
 
   @if (!loading && generationResults.length > 0) {
-
-    <div class="visualisation-section">
-
+    <section class="visualisation-section" aria-labelledby="generation-performance-title">
       <div class="section-heading">
-
         <div>
-
-          <h3>
-            Generation Performance
-          </h3>
-
-          <p>
-            ROUGE score comparison for generated
-            academic responses.
-          </p>
-
+          <span class="section-kicker">Generation benchmark</span>
+          <h2 id="generation-performance-title">Generation Performance</h2>
+          <p>ROUGE-based comparison of generation quality across embedding models.</p>
         </div>
-
       </div>
-
 
       <div class="rouge-grid">
-
-        @for (
-          result of generationResults;
-          track result.model
-        ) {
-
-          <div class="rouge-card">
-
-            <h4>
-              {{
-                formatModelName(
-                  result.model
-                )
-              }}
-            </h4>
-
-
-            <!-- ROUGE 1 -->
-
-            <div class="rouge-item">
-
-              <div class="bar-label">
-
-                <span>
-                  ROUGE-1
-                </span>
-
-                <strong>
-                  {{
-                    formatNumber(
-                      result.rouge1
-                    )
-                  }}
-                </strong>
-
+        @for (result of generationResults; track result.model) {
+          <article class="rouge-card" [class.featured]="isBestRougeL(result)">
+            <div class="model-card-heading">
+              <div>
+                <span class="model-label">Embedding model</span>
+                <h3>{{ formatModelName(result.model) }}</h3>
               </div>
-
-
-              <div class="bar-track">
-
-                <div
-                  class="bar-fill rouge-one"
-                  [style.width.%]="
-                    getRougeWidth(
-                      result.rouge1
-                    )
-                  ">
-                </div>
-
-              </div>
-
+              @if (isBestRougeL(result)) {
+                <span class="best-badge">Best ROUGE-L</span>
+              }
             </div>
 
-
-            <!-- ROUGE 2 -->
-
-            <div class="rouge-item">
-
-              <div class="bar-label">
-
-                <span>
-                  ROUGE-2
-                </span>
-
-                <strong>
-                  {{
-                    formatNumber(
-                      result.rouge2
-                    )
-                  }}
-                </strong>
-
+            <div class="rouge-list">
+              <div class="rouge-item">
+                <div class="bar-label"><span>ROUGE-1</span><strong>{{ formatNumber(result.rouge1) }}</strong></div>
+                <div class="bar-track" aria-hidden="true"><div class="bar-fill rouge-one" [style.width.%]="getMetricWidth(result.rouge1)"></div></div>
               </div>
 
-
-              <div class="bar-track">
-
-                <div
-                  class="bar-fill rouge-two"
-                  [style.width.%]="
-                    getRougeWidth(
-                      result.rouge2
-                    )
-                  ">
-                </div>
-
+              <div class="rouge-item">
+                <div class="bar-label"><span>ROUGE-2</span><strong>{{ formatNumber(result.rouge2) }}</strong></div>
+                <div class="bar-track" aria-hidden="true"><div class="bar-fill rouge-two" [style.width.%]="getMetricWidth(result.rouge2)"></div></div>
               </div>
 
+              <div class="rouge-item">
+                <div class="bar-label"><span>ROUGE-L</span><strong>{{ formatNumber(result.rougeL) }}</strong></div>
+                <div class="bar-track" aria-hidden="true"><div class="bar-fill rouge-l" [style.width.%]="getMetricWidth(result.rougeL)"></div></div>
+              </div>
             </div>
-
-
-            <!-- ROUGE L -->
-
-            <div class="rouge-item">
-
-              <div class="bar-label">
-
-                <span>
-                  ROUGE-L
-                </span>
-
-                <strong>
-                  {{
-                    formatNumber(
-                      result.rougeL
-                    )
-                  }}
-                </strong>
-
-              </div>
-
-
-              <div class="bar-track">
-
-                <div
-                  class="bar-fill rouge-l"
-                  [style.width.%]="
-                    getRougeWidth(
-                      result.rougeL
-                    )
-                  ">
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
+          </article>
         }
-
       </div>
-
-    </div>
-
+    </section>
   }
 
+  @if (!loading && retrievalResults.length > 0) {
+    <section class="results-section" aria-labelledby="retrieval-table-title">
+      <div class="section-header">
+        <div>
+          <span class="section-kicker">Detailed metrics</span>
+          <h2 id="retrieval-table-title">Retrieval Evaluation</h2>
+        </div>
+        <span class="table-hint">Scroll horizontally on smaller screens</span>
+      </div>
 
-  <!-- =============================================
-       RETRIEVAL TABLE
-  ============================================== -->
-
-  <div class="results-section">
-
-    <div class="section-header">
-
-      <h3>
-        Retrieval Evaluation
-      </h3>
-
-    </div>
-
-
-    <div class="table-wrapper">
-
-      <table>
-
-        <thead>
-
-          <tr>
-
-            <th>Model</th>
-            <th>Precision@1</th>
-            <th>Recall@5</th>
-            <th>Top-5 Accuracy</th>
-            <th>MRR</th>
-            <th>Retrieval Time</th>
-
-          </tr>
-
-        </thead>
-
-
-        <tbody>
-
-          @for (
-            result of retrievalResults;
-            track result.model
-          ) {
-
+      <div class="table-wrapper">
+        <table>
+          <thead>
             <tr>
-
-              <td class="model-name">
-
-                {{
-                  formatModelName(
-                    result.model
-                  )
-                }}
-
-              </td>
-
-
-              <td>
-
-                {{
-                  formatNumber(
-                    result['precision@1']
-                  )
-                }}
-
-              </td>
-
-
-              <td>
-
-                {{
-                  formatNumber(
-                    result['recall@5']
-                  )
-                }}
-
-              </td>
-
-
-              <td>
-
-                {{
-                  formatPercent(
-                    result.top5_accuracy
-                  )
-                }}
-
-              </td>
-
-
-              <td>
-
-                {{
-                  formatNumber(
-                    result.reciprocal_rank
-                  )
-                }}
-
-              </td>
-
-
-              <td>
-
-                {{
-                  result.retrieval_time
-                    | number:'1.4-4'
-                }}
-                s
-
-              </td>
-
+              <th>Model</th>
+              <th>Precision@1</th>
+              <th>Recall@5</th>
+              <th>Top-5 Accuracy</th>
+              <th>MRR</th>
+              <th>Retrieval Time</th>
             </tr>
+          </thead>
+          <tbody>
+            @for (result of retrievalResults; track result.model) {
+              <tr>
+                <td class="model-name">
+                  <span>{{ formatModelName(result.model) }}</span>
+                  @if (isBestTop5(result)) { <small class="row-badge">Best overall retrieval</small> }
+                </td>
+                <td>{{ formatNumber(result['precision@1']) }}</td>
+                <td>{{ formatNumber(result['recall@5']) }}</td>
+                <td><strong>{{ formatPercent(result.top5_accuracy) }}</strong></td>
+                <td>{{ formatNumber(result.reciprocal_rank) }}</td>
+                <td>{{ formatTime(result.retrieval_time) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
 
-          }
+  @if (!loading && generationResults.length > 0) {
+    <section class="results-section" aria-labelledby="generation-table-title">
+      <div class="section-header">
+        <div>
+          <span class="section-kicker">Detailed metrics</span>
+          <h2 id="generation-table-title">Generation Evaluation</h2>
+        </div>
+        <span class="table-hint">Scroll horizontally on smaller screens</span>
+      </div>
 
-        </tbody>
-
-      </table>
-
-    </div>
-
-  </div>
-
-
-  <!-- =============================================
-       GENERATION TABLE
-  ============================================== -->
-
-  <div class="results-section">
-
-    <div class="section-header">
-
-      <h3>
-        Generation Evaluation
-      </h3>
-
-    </div>
-
-
-    <div class="table-wrapper">
-
-      <table>
-
-        <thead>
-
-          <tr>
-
-            <th>Model</th>
-            <th>ROUGE-1</th>
-            <th>ROUGE-2</th>
-            <th>ROUGE-L</th>
-            <th>Retrieval Time</th>
-
-          </tr>
-
-        </thead>
-
-
-        <tbody>
-
-          @for (
-            result of generationResults;
-            track result.model
-          ) {
-
+      <div class="table-wrapper">
+        <table>
+          <thead>
             <tr>
-
-              <td class="model-name">
-
-                {{
-                  formatModelName(
-                    result.model
-                  )
-                }}
-
-              </td>
-
-
-              <td>
-                {{
-                  formatNumber(
-                    result.rouge1
-                  )
-                }}
-              </td>
-
-
-              <td>
-                {{
-                  formatNumber(
-                    result.rouge2
-                  )
-                }}
-              </td>
-
-
-              <td>
-                {{
-                  formatNumber(
-                    result.rougeL
-                  )
-                }}
-              </td>
-
-
-              <td>
-
-                {{
-                  result.retrieval_time
-                    | number:'1.4-4'
-                }}
-                s
-
-              </td>
-
+              <th>Model</th>
+              <th>ROUGE-1</th>
+              <th>ROUGE-2</th>
+              <th>ROUGE-L</th>
+              <th>Retrieval Time</th>
             </tr>
-
-          }
-
-        </tbody>
-
-      </table>
-
-    </div>
-
-  </div>
-
+          </thead>
+          <tbody>
+            @for (result of generationResults; track result.model) {
+              <tr>
+                <td class="model-name">
+                  <span>{{ formatModelName(result.model) }}</span>
+                  @if (isBestRougeL(result)) { <small class="row-badge">Best ROUGE-L</small> }
+                </td>
+                <td>{{ formatNumber(result.rouge1) }}</td>
+                <td>{{ formatNumber(result.rouge2) }}</td>
+                <td><strong>{{ formatNumber(result.rougeL) }}</strong></td>
+                <td>{{ formatTime(result.retrieval_time) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
 </section>

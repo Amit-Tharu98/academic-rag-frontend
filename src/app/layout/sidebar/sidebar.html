@@ -1,8 +1,26 @@
-<aside class="sidebar">
+<div
+  class="overlay"
+  [class.show]="layout.sidebarOpen()"
+  (click)="layout.closeSidebar()">
+</div>
+
+<aside
+  class="sidebar"
+  [class.open]="layout.sidebarOpen()">
 
   <div class="brand">
-    <h2>Academic RAG</h2>
-    <span>Research Assistant</span>
+
+    <div>
+      <h2>Academic RAG</h2>
+      <span>Research Assistant</span>
+    </div>
+
+    <button
+      class="close-btn"
+      (click)="layout.closeSidebar()">
+      ✕
+    </button>
+
   </div>
 
   <nav>
@@ -10,28 +28,28 @@
     <a
       routerLink="/research"
       routerLinkActive="active"
-    >
+      (click)="close()">
       Research Results
     </a>
 
     <a
       routerLink="/ask"
       routerLinkActive="active"
-    >
+      (click)="close()">
       Ask Question
     </a>
 
     <a
       routerLink="/upload"
       routerLinkActive="active"
-    >
+      (click)="close()">
       Upload & Analyse
     </a>
 
     <a
       routerLink="/compare"
       routerLinkActive="active"
-    >
+      (click)="close()">
       Compare Models
     </a>
 

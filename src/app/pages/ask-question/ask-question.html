@@ -1,403 +1,197 @@
 <section class="ask-page">
-
-  <!-- PAGE HEADING -->
-
   <div class="page-heading">
-
     <div>
-
-      <h2>
-        Ask a Question
-      </h2>
-
+      <span class="eyebrow">Academic RAG</span>
+      <h2>Ask a Question</h2>
       <p>
-        Ask questions against the academic document
-        collection using the selected embedding model.
+        Search the academic document collection and generate an answer from retrieved evidence.
       </p>
-
     </div>
 
+    <div class="status-pill" aria-label="Research corpus ready">
+      <span class="status-dot"></span>
+      Research corpus ready
+    </div>
   </div>
 
-
-  <!-- QUESTION FORM -->
-
   <div class="question-card">
-
-    <div class="form-grid">
-
-      <!-- EMBEDDING MODEL -->
-
-      <div class="form-group">
-
-        <label for="embeddingModel">
-          Embedding Model
-        </label>
-
-        <select
-          id="embeddingModel"
-          [(ngModel)]="selectedModel"
-        >
-
-          <option
-            value="sentence_transformer"
-          >
-            Sentence Transformer
-          </option>
-
-          <option
-            value="bge"
-          >
-            BGE
-          </option>
-
-          <option
-            value="openai"
-          >
-            OpenAI
-          </option>
-
-        </select>
-
+    <div class="card-heading">
+      <div class="heading-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+        </svg>
       </div>
-
-
-      <!-- TOP K -->
-
-      <div class="form-group">
-
-        <label for="topK">
-          Top-K Results
-        </label>
-
-        <select
-          id="topK"
-          [(ngModel)]="topK"
-        >
-
-          <option [value]="3">
-            3
-          </option>
-
-          <option [value]="5">
-            5
-          </option>
-
-          <option [value]="10">
-            10
-          </option>
-
-        </select>
-
+      <div>
+        <h3>Question settings</h3>
+        <p>Choose an embedding model and the number of retrieved chunks.</p>
       </div>
-
     </div>
 
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="embeddingModel">Embedding model</label>
+        <select id="embeddingModel" [(ngModel)]="selectedModel" [disabled]="loading">
+          @for (model of modelOptions; track model.value) {
+            <option [value]="model.value">{{ model.label }}</option>
+          }
+        </select>
+        <small>
+          {{ modelOptions.find(option => option.value === selectedModel)?.description }}
+        </small>
+      </div>
 
-    <!-- QUESTION -->
+      <div class="form-group">
+        <label for="topK">Top-K results</label>
+        <select id="topK" [(ngModel)]="topK" [disabled]="loading">
+          @for (value of topKOptions; track value) {
+            <option [ngValue]="value">{{ value }} chunks</option>
+          }
+        </select>
+        <small>Controls how much retrieved context is supplied to the generator.</small>
+      </div>
+    </div>
 
-    <div
-      class="form-group question-group"
-      ngSkipHydration
-    >
-
-      <label for="question">
-        Question
-      </label>
+    <div class="form-group question-group" ngSkipHydration>
+      <div class="label-row">
+        <label for="question">Your question</label>
+        <span>{{ question.length }} characters</span>
+      </div>
 
       <textarea
         id="question"
         rows="6"
+        maxlength="1200"
         [(ngModel)]="question"
-        placeholder="Enter your academic question..."
+        [disabled]="loading"
+        placeholder="For example: What are the main limitations of retrieval-augmented generation?"
       ></textarea>
-
     </div>
 
-
-    <!-- ERROR -->
+    <div class="examples">
+      <span>Try an example:</span>
+      <div class="example-list">
+        @for (example of exampleQuestions; track example) {
+          <button type="button" (click)="useExample(example)" [disabled]="loading">
+            {{ example }}
+          </button>
+        }
+      </div>
+    </div>
 
     @if (errorMessage) {
-
-      <div class="error-message">
-
-        {{ errorMessage }}
-
+      <div class="error-message" role="alert">
+        <span class="error-icon">!</span>
+        <span>{{ errorMessage }}</span>
       </div>
-
     }
 
-
-    <!-- BUTTON -->
-
     <div class="action-row">
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="loading || (!question && !result)"
+        (click)="clearQuestion()"
+      >
+        Clear
+      </button>
 
       <button
         type="button"
         class="ask-button"
-        [disabled]="loading"
+        [disabled]="loading || !question.trim()"
         (click)="askQuestion()"
       >
-
         @if (loading) {
-
-          Generating Answer...
-
+          <span class="spinner" aria-hidden="true"></span>
+          Generating answer...
         } @else {
-
-          Ask Question
-
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m22 2-7 20-4-9-9-4Z" />
+            <path d="M22 2 11 13" />
+          </svg>
+          Ask question
         }
-
       </button>
-
     </div>
-
   </div>
 
-
-  <!-- RESULT -->
-
   @if (result) {
-
     <div class="answer-section">
-
-
-      <!-- GENERATED ANSWER -->
-
       <div class="section-heading">
-
         <div>
-
-          <h3>
-            Generated Answer
-          </h3>
-
-          <p>
-            Response generated from retrieved
-            academic document context.
-          </p>
-
+          <span class="eyebrow">Generated response</span>
+          <h3>Answer</h3>
+          <p>Generated from the most relevant chunks retrieved from the academic corpus.</p>
         </div>
-
       </div>
 
-
-      <div class="answer-card">
-
-        <p class="answer-text">
-
-          {{ result.answer }}
-
-        </p>
-
-      </div>
-
-
-      <!-- RESULT STATS -->
+      <article class="answer-card">
+        <div class="answer-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
+          </svg>
+        </div>
+        <p class="answer-text">{{ result.answer }}</p>
+      </article>
 
       <div class="result-stats">
-
-
-        <!-- MODEL -->
-
         <div class="result-stat">
-
-          <span>
-            Embedding Model
-          </span>
-
-          <strong>
-
-            {{
-              formatModelName(
-                result.embedding_model
-              )
-            }}
-
-          </strong>
-
+          <span>Embedding model</span>
+          <strong>{{ formatModelName(result.embedding_model) }}</strong>
         </div>
 
-
-        <!-- RETRIEVAL TIME -->
-
         <div class="result-stat">
-
-          <span>
-            Retrieval Time
-          </span>
-
-          <strong>
-
-            {{
-              formatTime(
-                result.retrieval_time
-              )
-            }}
-            s
-
-          </strong>
-
+          <span>Retrieval time</span>
+          <strong>{{ formatTime(result.retrieval_time) }} s</strong>
         </div>
 
-
-        <!-- TOP SIMILARITY -->
-
         <div class="result-stat">
-
-          <span>
-            Top Similarity
-          </span>
-
-          <strong>
-    {{
-      formatScore(
-        result.top_similarity_score
-      )
-    }}
-  </strong>
-
+          <span>Top similarity</span>
+          <strong>{{ formatScore(result.top_similarity_score) }}</strong>
         </div>
 
-
-        <!-- AVERAGE SIMILARITY -->
-
         <div class="result-stat">
-
-          <span>
-            Average Similarity
-          </span>
-
-          <strong>
-    {{
-      formatScore(
-        result.average_similarity_score
-      )
-    }}
-  </strong>
-
+          <span>Average similarity</span>
+          <strong>{{ formatScore(result.average_similarity_score) }}</strong>
         </div>
-
       </div>
 
-
-      <!-- SOURCES -->
-
-      @if (
-        result.sources &&
-        result.sources.length > 0
-      ) {
-
+      @if (result.sources?.length) {
         <div class="sources-section">
-
-          <div class="section-heading">
-
+          <div class="section-heading source-heading">
             <div>
-
-              <h3>
-                Retrieved Sources
-              </h3>
-
-              <p>
-                Academic chunks used as context
-                for the generated response.
-              </p>
-
+              <span class="eyebrow">Supporting evidence</span>
+              <h3>Retrieved Sources</h3>
+              <p>{{ result.sources.length }} ranked chunks were used as context for this answer.</p>
             </div>
-
           </div>
-
 
           <div class="sources-list">
-
-            @for (
-              source of result.sources;
-              track source.rank
-            ) {
-
-              <div class="source-card">
-
+            @for (source of result.sources; track source.chunk_id) {
+              <article class="source-card">
                 <div class="source-header">
-
-                  <div>
-
-                    <span class="source-rank">
-
-                      Source {{ source.rank }}
-
-                    </span>
-
-
-                    <h4>
-
-                      {{ source.source }}
-
-                    </h4>
-
+                  <div class="source-title-wrap">
+                    <span class="source-rank">#{{ source.rank }}</span>
+                    <div>
+                      <h4>{{ source.source }}</h4>
+                      <div class="source-meta">
+                        <span>Page {{ source.page }}</span>
+                        <span>Chunk {{ source.chunk_id }}</span>
+                      </div>
+                    </div>
                   </div>
-
 
                   <div class="source-score">
-
-                    Similarity
-
-                    <strong>
-
-                      {{
-                        formatScore(
-                          source.score
-                        )
-                      }}
-
-                    </strong>
-
+                    <span>Similarity</span>
+                    <strong>{{ formatScore(source.score) }}</strong>
                   </div>
-
                 </div>
-
-
-                <div class="source-meta">
-
-                  <span>
-
-                    Page:
-
-                    <strong>
-
-                      {{ source.page }}
-
-                    </strong>
-
-                  </span>
-
-
-                  <span>
-
-                    Chunk:
-
-                    <strong>
-
-                      {{ source.chunk_id }}
-
-                    </strong>
-
-                  </span>
-
-                </div>
-
-              </div>
-
+              </article>
             }
-
           </div>
-
         </div>
-
       }
-
     </div>
-
   }
-
 </section>

@@ -1,1081 +1,573 @@
-<div class="upload-page">
-
-  <div class="page-header">
-
-    <h1>
-      Upload & Analyse
-    </h1>
-
-    <p>
-      Upload an academic PDF to ask questions
-      and generate document summaries.
-    </p>
-
-  </div>
-
-
-  <!-- ====================================== -->
-  <!-- Upload Document -->
-  <!-- ====================================== -->
-
-  <section class="upload-card">
-
-    <div class="upload-title">
-
-      <h2>
-        Upload Academic Document
-      </h2>
-
+<section class="upload-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">DOCUMENT WORKSPACE</span>
+      <h1>Upload & Analyse</h1>
       <p>
-        Select a PDF document for processing.
+        Upload multiple academic PDFs, ask questions across the collection,
+        and generate document summaries.
       </p>
-
     </div>
 
+    <div class="status-pill" [class.ready]="uploadResult">
+      <span class="status-dot"></span>
+      {{ uploadResult ? 'Collection ready' : 'Waiting for documents' }}
+    </div>
+  </header>
 
-    <label
-      class="file-upload"
-      for="pdfFile"
-    >
-
-      <div class="upload-icon">
-        ↑
+  <section class="panel upload-panel">
+    <div class="panel-heading">
+      <div class="heading-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 16V4m0 0-4 4m4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>
+        </svg>
       </div>
 
+      <div>
+        <h2>Upload academic documents</h2>
+        <p>Select one or more PDF files to create a temporary analysis collection.</p>
+      </div>
+    </div>
 
-      @if (!selectedFile) {
+    <label class="drop-zone" for="pdfFiles">
+      <div class="drop-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 16V4m0 0-4 4m4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>
+        </svg>
+      </div>
 
-        <strong>
-          Select PDF document
-        </strong>
+      <strong>
+        {{ selectedFiles.length ? 'Add more PDF documents' : 'Choose PDF documents' }}
+      </strong>
 
-        <span>
-          Click here to choose a file
-        </span>
-
-      } @else {
-
-        <strong>
-          {{ selectedFile.name }}
-        </strong>
-
-        <span>
-          {{
-            formatFileSize(
-              selectedFile.size
-            )
-          }}
-        </span>
-
-      }
-
+      <span>
+        {{ selectedFiles.length
+          ? selectedFiles.length + ' file(s) selected'
+          : 'PDF only · Up to 10 documents · 10 MB per file · 50 MB total' }}
+      </span>
     </label>
 
-
     <input
-      id="pdfFile"
+      id="pdfFiles"
       class="file-input"
       type="file"
       accept=".pdf,application/pdf"
-      (change)="onFileSelected($event)"
+      multiple
+      (change)="onFilesSelected($event)"
     />
 
+    @if (selectedFiles.length > 0) {
+      <div class="selected-files">
+        <div class="selected-files-header">
+          <div>
+            <h3>Selected documents</h3>
+            <p>{{ selectedFiles.length }} PDF file(s) · {{ formatFileSize(totalSelectedSize) }}</p>
+          </div>
 
-    @if (errorMessage) {
+          <button
+            type="button"
+            class="text-button danger"
+            [disabled]="uploading"
+            (click)="clearSelectedFiles()"
+          >
+            Clear all
+          </button>
+        </div>
 
-      <div class="error-message">
-        {{ errorMessage }}
+        <div class="file-list">
+          @for (file of selectedFiles; track file.name + file.size; let index = $index) {
+            <div class="file-row">
+              <div class="file-main">
+                <span class="pdf-badge">PDF</span>
+
+                <div class="file-copy">
+                  <strong>{{ file.name }}</strong>
+                  <span>{{ formatFileSize(file.size) }}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="remove-file"
+                [disabled]="uploading"
+                [attr.aria-label]="'Remove ' + file.name"
+                (click)="removeFile(index)"
+              >
+                ×
+              </button>
+            </div>
+          }
+        </div>
       </div>
-
     }
 
+    @if (errorMessage) {
+      <div class="message error-message">
+        <span aria-hidden="true">!</span>
+        {{ errorMessage }}
+      </div>
+    }
 
-    <button
-      class="upload-button"
-      type="button"
-      [disabled]="
-        !selectedFile ||
-        uploading
-      "
-      (click)="uploadDocument()"
-    >
+    <div class="upload-actions">
+      <p class="upload-note">
+        PDF only · Maximum 10 documents · 10 MB per file · 50 MB total. Files are processed together so retrieval can use evidence from any uploaded document.
+      </p>
 
-      @if (uploading) {
-
-        Processing PDF...
-
-      } @else {
-
-        Upload & Process
-
-      }
-
-    </button>
-
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="selectedFiles.length === 0 || uploading"
+        (click)="uploadDocuments()"
+      >
+        @if (uploading) {
+          <span class="spinner"></span>
+          Processing {{ selectedFiles.length }} document(s)...
+        } @else {
+          Upload & process
+        }
+      </button>
+    </div>
   </section>
 
-
-  <!-- ====================================== -->
-  <!-- Document Information -->
-  <!-- ====================================== -->
-
   @if (uploadResult) {
-
-    <section class="document-section">
-
+    <section class="collection-overview">
       <div class="section-heading">
-
-        <h2>
-          Document Processed
-        </h2>
-
-        <p>
-          Your document is ready for
-          academic RAG analysis.
-        </p>
-
-      </div>
-
-
-      <div class="document-card">
-
-        <div class="document-name">
-
-          <span class="pdf-icon">
-            PDF
-          </span>
-
-
-          <div>
-
-            <strong>
-              {{ uploadResult.filename }}
-            </strong>
-
-            <p>
-              {{ uploadResult.status }}
-            </p>
-
-          </div>
-
+        <div>
+          <span class="eyebrow">PROCESSED COLLECTION</span>
+          <h2>Documents ready for analysis</h2>
+          <p>
+            Ask questions or create summaries using the processed collection below.
+          </p>
         </div>
 
-
-        <div class="document-stats">
-
-          <div class="stat">
-
-            <span>
-              Pages
-            </span>
-
-            <strong>
-              {{ uploadResult.pages }}
-            </strong>
-
-          </div>
-
-
-          <div class="stat">
-
-            <span>
-              Chunks
-            </span>
-
-            <strong>
-              {{ uploadResult.chunks }}
-            </strong>
-
-          </div>
-
-
-          <div class="stat">
-
-            <span>
-              Chunk Size
-            </span>
-
-            <strong>
-              {{ uploadResult.chunk_size }}
-            </strong>
-
-          </div>
-
-
-          <div class="stat">
-
-            <span>
-              Overlap
-            </span>
-
-            <strong>
-              {{ uploadResult.chunk_overlap }}
-            </strong>
-
-          </div>
-
-        </div>
-
+        <button type="button" class="secondary-button" (click)="startNewCollection()">
+          New collection
+        </button>
       </div>
 
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span>Documents</span>
+          <strong>{{ processedDocumentCount }}</strong>
+          <small>PDF files</small>
+        </div>
+
+        <div class="stat-card">
+          <span>Pages</span>
+          <strong>{{ uploadResult.pages ?? '—' }}</strong>
+          <small>Processed pages</small>
+        </div>
+
+        <div class="stat-card">
+          <span>Chunks</span>
+          <strong>{{ uploadResult.chunks ?? '—' }}</strong>
+          <small>Searchable passages</small>
+        </div>
+
+        <div class="stat-card">
+          <span>Chunk settings</span>
+          <strong>{{ uploadResult.chunk_size ?? '—' }}</strong>
+          <small>{{ uploadResult.chunk_overlap ?? '—' }} overlap</small>
+        </div>
+      </div>
+
+      <div class="processed-files-card">
+        <div class="processed-files-heading">
+          <h3>Collection documents</h3>
+          <span>{{ uploadResult.status || 'Processed' }}</span>
+        </div>
+
+        <div class="processed-file-list">
+          @for (filename of processedFilenames; track filename; let index = $index) {
+            <div class="processed-file">
+              <span class="pdf-badge">PDF</span>
+              <span>{{ filename }}</span>
+              <small>#{{ index + 1 }}</small>
+            </div>
+          }
+        </div>
+      </div>
     </section>
 
-
-    <!-- ====================================== -->
-    <!-- Ask Uploaded Document -->
-    <!-- ====================================== -->
-
-    <section class="analysis-section">
-
-      <div class="section-heading">
-
-        <h2>
-          Ask This Document
-        </h2>
-
-        <p>
-          Ask a question using only the
-          uploaded academic document.
-        </p>
-
-      </div>
-
-
-      <div class="analysis-card">
-
-        <div class="analysis-options">
-
-
-          <!-- Embedding Model -->
-
-          <div class="form-group">
-
-            <label for="uploadModel">
-              Embedding Model
-            </label>
-
-
-            <select
-              id="uploadModel"
-              [(ngModel)]="selectedModel"
-            >
-
-              <option
-                value="sentence_transformer"
-              >
-                Sentence Transformer
-              </option>
-
-              <option value="bge">
-                BGE
-              </option>
-
-              <option value="openai">
-                OpenAI
-              </option>
-
-            </select>
-
+    <section class="workspace-grid">
+      <article class="panel analysis-panel">
+        <div class="panel-heading">
+          <div class="heading-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+            </svg>
           </div>
 
-
-          <!-- Top K -->
-
-          <div class="form-group">
-
-            <label for="uploadTopK">
-              Top-K
-            </label>
-
-
-            <select
-              id="uploadTopK"
-              [(ngModel)]="topK"
-            >
-
-              <option [ngValue]="3">
-                3
-              </option>
-
-              <option [ngValue]="5">
-                5
-              </option>
-
-              <option [ngValue]="10">
-                10
-              </option>
-
-            </select>
-
+          <div>
+            <h2>Ask across documents</h2>
+            <p>Retrieve evidence from any PDF in the uploaded collection.</p>
           </div>
-
         </div>
 
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="uploadModel">Embedding model</label>
+            <select id="uploadModel" [(ngModel)]="selectedModel">
+              <option value="sentence_transformer">Sentence Transformer</option>
+              <option value="bge">BGE</option>
+              <option value="openai">OpenAI</option>
+            </select>
+            <small>{{ modelDescription(selectedModel) }}</small>
+          </div>
 
-        <!-- Question -->
+          <div class="form-group">
+            <label for="uploadTopK">Top-K results</label>
+            <select id="uploadTopK" [(ngModel)]="topK">
+              <option [ngValue]="3">3 chunks</option>
+              <option [ngValue]="5">5 chunks</option>
+              <option [ngValue]="10">10 chunks</option>
+            </select>
+            <small>Number of chunks supplied to the generator.</small>
+          </div>
+        </div>
 
-        <div
-          class="form-group question-group"
-          ngSkipHydration
-        >
-
-          <label for="uploadQuestion">
-            Question
-          </label>
-
+        <div class="form-group">
+          <div class="label-row">
+            <label for="uploadQuestion">Your question</label>
+            <span>{{ question.length }} characters</span>
+          </div>
 
           <textarea
             id="uploadQuestion"
             rows="5"
+            maxlength="1500"
             [(ngModel)]="question"
-            placeholder="For example: What is the main objective of this paper?"
+            placeholder="For example: What limitations are common across these papers?"
           ></textarea>
-
         </div>
 
+        <div class="example-row">
+          <span>Try an example:</span>
+          <button type="button" (click)="useExampleQuestion('What are the main findings across these documents?')">
+            Main findings
+          </button>
+          <button type="button" (click)="useExampleQuestion('What limitations are shared across these papers?')">
+            Shared limitations
+          </button>
+        </div>
 
         @if (questionError) {
-
-          <div class="error-message">
+          <div class="message error-message">
+            <span aria-hidden="true">!</span>
             {{ questionError }}
           </div>
-
         }
 
+        <div class="card-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="askingQuestion"
+            (click)="clearQuestion()"
+          >
+            Clear
+          </button>
 
-        <button
-          type="button"
-          class="ask-button"
-          [disabled]="askingQuestion"
-          (click)="askUploadedDocument()"
-        >
+          <button
+            type="button"
+            class="primary-button"
+            [disabled]="askingQuestion || !question.trim()"
+            (click)="askUploadedDocuments()"
+          >
+            @if (askingQuestion) {
+              <span class="spinner"></span>
+              Generating answer...
+            } @else {
+              Ask collection
+            }
+          </button>
+        </div>
+      </article>
 
-          @if (askingQuestion) {
+      <article class="panel summary-panel">
+        <div class="panel-heading">
+          <div class="heading-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 4h12a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 9h8M8 13h8M8 17h5"/>
+            </svg>
+          </div>
 
-            Generating Answer...
+          <div>
+            <h2>Summarise collection</h2>
+            <p>Create an overall synthesis or a topic-focused summary.</p>
+          </div>
+        </div>
 
-          } @else {
+        <div class="summary-type-group">
+          <label>Summary type</label>
 
-            Ask This Document
+          <div class="segmented-control">
+            <button
+              type="button"
+              [class.active]="summaryType === 'full_paper'"
+              (click)="setSummaryType('full_paper')"
+            >
+              All documents
+            </button>
 
-          }
+            <button
+              type="button"
+              [class.active]="summaryType === 'topic_focused'"
+              (click)="setSummaryType('topic_focused')"
+            >
+              Topic focused
+            </button>
+          </div>
+        </div>
 
-        </button>
+        <div class="form-group">
+          <label for="summaryLength">Summary length</label>
+          <select id="summaryLength" [(ngModel)]="summaryLength">
+            <option value="short">Short</option>
+            <option value="medium">Medium</option>
+            <option value="detailed">Detailed</option>
+          </select>
+        </div>
 
-      </div>
+        @if (summaryType === 'topic_focused') {
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="summaryModel">Embedding model</label>
+              <select id="summaryModel" [(ngModel)]="summaryModel">
+                <option value="sentence_transformer">Sentence Transformer</option>
+                <option value="bge">BGE</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </div>
 
+            <div class="form-group">
+              <label for="summaryTopK">Top-K results</label>
+              <select id="summaryTopK" [(ngModel)]="summaryTopK">
+                <option [ngValue]="3">3 chunks</option>
+                <option [ngValue]="5">5 chunks</option>
+                <option [ngValue]="10">10 chunks</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="summaryTopic">Topic</label>
+            <textarea
+              id="summaryTopic"
+              rows="4"
+              maxlength="1000"
+              [(ngModel)]="summaryTopic"
+              placeholder="For example: Compare the evaluation methods used across the papers."
+            ></textarea>
+          </div>
+        } @else {
+          <div class="info-box">
+            The overall summary should synthesise the uploaded documents rather than treating them as one paper.
+          </div>
+        }
+
+        @if (summaryError) {
+          <div class="message error-message">
+            <span aria-hidden="true">!</span>
+            {{ summaryError }}
+          </div>
+        }
+
+        <div class="card-actions">
+          <button
+            type="button"
+            class="primary-button"
+            [disabled]="generatingSummary"
+            (click)="generateSummary()"
+          >
+            @if (generatingSummary) {
+              <span class="spinner"></span>
+              Generating summary...
+            } @else {
+              Generate summary
+            }
+          </button>
+        </div>
+      </article>
     </section>
-
   }
-
-
-  <!-- ====================================== -->
-  <!-- Generated Answer -->
-  <!-- ====================================== -->
 
   @if (questionResult) {
-
-    <section class="answer-section">
-
+    <section class="result-section">
       <div class="section-heading">
-
-        <h2>
-          Generated Answer
-        </h2>
-
-        <p>
-          Response generated from the uploaded
-          academic document context.
-        </p>
-
+        <div>
+          <span class="eyebrow">GENERATED RESPONSE</span>
+          <h2>Answer</h2>
+          <p>Generated from the most relevant chunks across the uploaded collection.</p>
+        </div>
       </div>
-
 
       <div class="answer-card">
-
-        <p>
-          {{ questionResult.answer }}
-        </p>
-
+        <div class="answer-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+          </svg>
+        </div>
+        <p>{{ questionResult.answer }}</p>
       </div>
-
-
-      <!-- ====================================== -->
-      <!-- Retrieval Statistics -->
-      <!-- ====================================== -->
 
       <div class="result-stats">
-
-
         <div class="result-stat">
-
-          <span>
-            Embedding Model
-          </span>
-
-          <strong>
-            {{
-              formatModelName(
-                questionResult.embedding_model
-              )
-            }}
-          </strong>
-
+          <span>Embedding model</span>
+          <strong>{{ formatModelName(questionResult.embedding_model) }}</strong>
         </div>
 
-
         <div class="result-stat">
-
-          <span>
-            Retrieval Time
-          </span>
-
-          <strong>
-            {{
-              formatTime(
-                questionResult.retrieval_time
-              )
-            }} s
-          </strong>
-
+          <span>Retrieval time</span>
+          <strong>{{ formatNumber(questionResult.retrieval_time) }} s</strong>
         </div>
 
-
         <div class="result-stat">
-
-          <span>
-            Top Similarity
-          </span>
-
-          <strong>
-            {{
-              formatScore(
-                questionResult.top_similarity_score
-              )
-            }}
-          </strong>
-
+          <span>Top similarity</span>
+          <strong>{{ formatNumber(questionResult.top_similarity_score) }}</strong>
         </div>
 
-
         <div class="result-stat">
-
-          <span>
-            Average Similarity
-          </span>
-
-          <strong>
-            {{
-              formatScore(
-                questionResult.average_similarity_score
-              )
-            }}
-          </strong>
-
+          <span>Average similarity</span>
+          <strong>{{ formatNumber(questionResult.average_similarity_score) }}</strong>
         </div>
-
       </div>
 
-
-      <!-- ====================================== -->
-      <!-- Retrieved Sources -->
-      <!-- ====================================== -->
-
-      <div class="sources-section">
-
-        <div class="section-heading">
-
-          <h2>
-            Retrieved Sources
-          </h2>
-
-          <p>
-            Academic chunks retrieved from
-            the uploaded PDF.
-          </p>
-
-        </div>
-
-
-        @for (
-          source of questionResult.sources;
-          track source.chunk_id
-        ) {
-
-          <div class="source-card">
-
-            <div class="source-header">
-
-              <strong>
-                Source {{ source.rank }}
-              </strong>
-
-
-              <span>
-                Similarity:
-                {{
-                  formatScore(
-                    source.score
-                  )
-                }}
-              </span>
-
-            </div>
-
-
-            <div class="source-details">
-
-              <span>
-                <strong>
-                  File:
-                </strong>
-
-                {{ source.source }}
-              </span>
-
-
-              <span>
-                <strong>
-                  Page:
-                </strong>
-
-                {{ source.page }}
-              </span>
-
-
-              <span>
-                <strong>
-                  Chunk:
-                </strong>
-
-                {{ source.chunk_id }}
-              </span>
-
-            </div>
-
-          </div>
-
-        }
-
-      </div>
-
-    </section>
-
-  }
-<!-- ====================================== -->
-<!-- Generate Summary -->
-<!-- ====================================== -->
-
-@if (uploadResult) {
-
-  <section class="summary-section">
-
-    <div class="section-heading">
-
-      <h2>
-        Generate Summary
-      </h2>
-
-      <p>
-        Generate a full-paper summary or
-        focus on a specific topic.
-      </p>
-
-    </div>
-
-
-    <div class="summary-card">
-
-
-      <!-- Summary Type -->
-
-      <div class="summary-type-group">
-
-        <label>
-          Summary Type
-        </label>
-
-
-        <div class="summary-type-options">
-
-          <button
-            type="button"
-            class="summary-type-button"
-            [class.active]="
-              summaryType === 'full_paper'
-            "
-            (click)="
-              summaryType = 'full_paper';
-              summaryResult = null;
-              summaryError = ''
-            "
-          >
-            Full Paper
-          </button>
-
-
-          <button
-            type="button"
-            class="summary-type-button"
-            [class.active]="
-              summaryType === 'topic_focused'
-            "
-            (click)="
-              summaryType = 'topic_focused';
-              summaryResult = null;
-              summaryError = ''
-            "
-          >
-            Topic Focused
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <!-- Summary Length -->
-
-      <div class="form-group summary-length">
-
-        <label for="summaryLength">
-          Summary Length
-        </label>
-
-        <select
-          id="summaryLength"
-          [(ngModel)]="summaryLength"
-        >
-
-          <option value="short">
-            Short
-          </option>
-
-          <option value="medium">
-            Medium
-          </option>
-
-          <option value="detailed">
-            Detailed
-          </option>
-
-        </select>
-
-      </div>
-
-
-      <!-- ====================================== -->
-      <!-- Topic Focused Options -->
-      <!-- ====================================== -->
-
-      @if (
-        summaryType ===
-        'topic_focused'
-      ) {
-
-        <div class="topic-summary-options">
-
-
-          <div class="form-group">
-
-            <label for="summaryModel">
-              Embedding Model
-            </label>
-
-            <select
-              id="summaryModel"
-              [(ngModel)]="summaryModel"
-            >
-
-              <option
-                value="sentence_transformer"
-              >
-                Sentence Transformer
-              </option>
-
-              <option value="bge">
-                BGE
-              </option>
-
-              <option value="openai">
-                OpenAI
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <div class="form-group">
-
-            <label for="summaryTopK">
-              Top-K
-            </label>
-
-            <select
-              id="summaryTopK"
-              [(ngModel)]="summaryTopK"
-            >
-
-              <option [ngValue]="3">
-                3
-              </option>
-
-              <option [ngValue]="5">
-                5
-              </option>
-
-              <option [ngValue]="10">
-                10
-              </option>
-
-            </select>
-
-          </div>
-
-        </div>
-
-
-        <div
-          class="form-group topic-group"
-          ngSkipHydration
-        >
-
-          <label for="summaryTopic">
-            Topic
-          </label>
-
-          <textarea
-            id="summaryTopic"
-            rows="4"
-            [(ngModel)]="summaryTopic"
-            placeholder="For example: GPT-based embedding methods proposed in the paper"
-          ></textarea>
-
-        </div>
-
-      }
-
-
-      @if (summaryError) {
-
-        <div class="error-message">
-          {{ summaryError }}
-        </div>
-
-      }
-
-
-      <button
-        type="button"
-        class="summary-button"
-        [disabled]="generatingSummary"
-        (click)="generateSummary()"
-      >
-
-        @if (generatingSummary) {
-
-          Generating Summary...
-
-        } @else {
-
-          Generate Summary
-
-        }
-
-      </button>
-
-    </div>
-
-  </section>
-
-}
-<!-- ====================================== -->
-<!-- Summary Result -->
-<!-- ====================================== -->
-
-@if (summaryResult) {
-
-  <section class="summary-result-section">
-
-    <div class="section-heading">
-
-      <h2>
-        Generated Summary
-      </h2>
-
-      <p>
-
-        @if (
-          summaryResult.summary_type ===
-          'full_paper'
-        ) {
-
-          Full-paper summary generated
-          from the uploaded document.
-
-        } @else {
-
-          Topic-focused summary generated
-          from retrieved document context.
-
-        }
-
-      </p>
-
-    </div>
-
-
-    <div class="summary-result-card">
-
-      <p>
-        {{ summaryResult.summary }}
-      </p>
-
-    </div>
-
-
-    <!-- Full Paper Information -->
-
-    @if (
-      summaryResult.summary_type ===
-      'full_paper'
-    ) {
-
-      <div class="summary-stats">
-
-        <div class="result-stat">
-
-          <span>
-            Summary Type
-          </span>
-
-          <strong>
-            Full Paper
-          </strong>
-
-        </div>
-
-
-        <div class="result-stat">
-
-          <span>
-            Summary Length
-          </span>
-
-          <strong>
-            {{ summaryResult.summary_length }}
-          </strong>
-
-        </div>
-
-
-        <div class="result-stat">
-
-          <span>
-            Chunks Processed
-          </span>
-
-          <strong>
-            {{ summaryResult.chunks_processed }}
-          </strong>
-
-        </div>
-
-
-        <div class="result-stat">
-
-          <span>
-            Sections Summarised
-          </span>
-
-          <strong>
-            {{ summaryResult.sections_summarised }}
-          </strong>
-
-        </div>
-
-      </div>
-
-    }
-
-
-    <!-- Topic Summary Information -->
-
-    @if (
-      summaryResult.summary_type ===
-      'topic_focused'
-    ) {
-
-      <div class="summary-topic-info">
-
-        <span>
-          Topic
-        </span>
-
-        <strong>
-          {{ summaryResult.topic }}
-        </strong>
-
-      </div>
-
-
-      <div class="summary-stats">
-
-        <div class="result-stat">
-
-          <span>
-            Embedding Model
-          </span>
-
-          <strong>
-            {{
-              formatModelName(
-                summaryResult.embedding_model
-              )
-            }}
-          </strong>
-
-        </div>
-
-
-        <div class="result-stat">
-
-          <span>
-            Summary Length
-          </span>
-
-          <strong>
-            {{ summaryResult.summary_length }}
-          </strong>
-
-        </div>
-
-
-        <div class="result-stat">
-
-          <span>
-            Top Similarity
-          </span>
-
-          <strong>
-            {{
-              formatScore(
-                summaryResult.top_similarity_score
-              )
-            }}
-          </strong>
-
-        </div>
-
-
-        <div class="result-stat">
-
-          <span>
-            Average Similarity
-          </span>
-
-          <strong>
-            {{
-              formatScore(
-                summaryResult.average_similarity_score
-              )
-            }}
-          </strong>
-
-        </div>
-
-      </div>
-
-
-      <!-- Topic Summary Sources -->
-
-      @if (
-        summaryResult.sources?.length
-      ) {
-
+      @if (questionResult.sources?.length) {
         <div class="sources-section">
-
           <div class="section-heading">
-
-            <h2>
-              Summary Sources
-            </h2>
-
-            <p>
-              Relevant chunks used to generate
-              the topic-focused summary.
-            </p>
-
+            <div>
+              <span class="eyebrow">SUPPORTING EVIDENCE</span>
+              <h2>Retrieved sources</h2>
+              <p>
+                {{ questionResult.sources.length }} ranked chunk(s) were used as context.
+              </p>
+            </div>
           </div>
 
+          <div class="source-list">
+            @for (source of questionResult.sources; track source.chunk_id) {
+              <div class="source-card">
+                <span class="source-rank">#{{ source.rank }}</span>
 
-          @for (
-            source of summaryResult.sources;
-            track source.chunk_id
-          ) {
+                <div class="source-copy">
+                  <strong>{{ source.source }}</strong>
 
-            <div class="source-card">
+                  <div class="source-meta">
+                    <span>Page {{ source.page }}</span>
+                    <span>{{ source.chunk_id }}</span>
+                  </div>
+                </div>
 
-              <div class="source-header">
-
-                <strong>
-                  Source {{ source.rank }}
-                </strong>
-
-                <span>
-                  Similarity:
-                  {{
-                    formatScore(
-                      source.score
-                    )
-                  }}
-                </span>
-
+                <div class="source-score">
+                  <span>Similarity</span>
+                  <strong>{{ formatNumber(source.score) }}</strong>
+                </div>
               </div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
 
+  @if (summaryResult) {
+    <section class="result-section">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">GENERATED SUMMARY</span>
+          <h2>
+            {{ summaryResult.summary_type === 'full_paper'
+              ? 'Collection Summary'
+              : 'Topic-focused Summary' }}
+          </h2>
+          <p>
+            {{ summaryResult.summary_type === 'full_paper'
+              ? 'A synthesis of the uploaded academic documents.'
+              : 'A summary generated from retrieved evidence related to the selected topic.' }}
+          </p>
+        </div>
+      </div>
 
-              <div class="source-details">
+      <div class="summary-result-card">
+        <p>{{ summaryResult.summary }}</p>
+      </div>
 
-                <span>
-                  <strong>
-                    File:
-                  </strong>
-
-                  {{ source.source }}
-                </span>
-
-
-                <span>
-                  <strong>
-                    Page:
-                  </strong>
-
-                  {{ source.page }}
-                </span>
-
-
-                <span>
-                  <strong>
-                    Chunk:
-                  </strong>
-
-                  {{ source.chunk_id }}
-                </span>
-
-              </div>
-
-            </div>
-
-          }
-
+      <div class="result-stats">
+        <div class="result-stat">
+          <span>Summary type</span>
+          <strong>
+            {{ summaryResult.summary_type === 'full_paper' ? 'All Documents' : 'Topic Focused' }}
+          </strong>
         </div>
 
+        <div class="result-stat">
+          <span>Summary length</span>
+          <strong>{{ titleCase(summaryResult.summary_length) }}</strong>
+        </div>
+
+        @if (summaryResult.summary_type === 'full_paper') {
+          <div class="result-stat">
+            <span>Chunks processed</span>
+            <strong>{{ summaryResult.chunks_processed ?? '—' }}</strong>
+          </div>
+
+          <div class="result-stat">
+            <span>Sections summarised</span>
+            <strong>{{ summaryResult.sections_summarised ?? '—' }}</strong>
+          </div>
+        } @else {
+          <div class="result-stat">
+            <span>Embedding model</span>
+            <strong>{{ formatModelName(summaryResult.embedding_model) }}</strong>
+          </div>
+
+          <div class="result-stat">
+            <span>Top similarity</span>
+            <strong>{{ formatNumber(summaryResult.top_similarity_score) }}</strong>
+          </div>
+        }
+      </div>
+
+      @if (summaryResult.topic) {
+        <div class="topic-card">
+          <span>Topic</span>
+          <strong>{{ summaryResult.topic }}</strong>
+        </div>
       }
 
-    }
+      @if (summaryResult.sources?.length) {
+        <div class="sources-section">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">SUMMARY EVIDENCE</span>
+              <h2>Retrieved sources</h2>
+              <p>Evidence used for the topic-focused summary.</p>
+            </div>
+          </div>
 
-  </section>
+          <div class="source-list">
+            @for (source of summaryResult.sources; track source.chunk_id) {
+              <div class="source-card">
+                <span class="source-rank">#{{ source.rank }}</span>
 
-}
-</div>
+                <div class="source-copy">
+                  <strong>{{ source.source }}</strong>
+                  <div class="source-meta">
+                    <span>Page {{ source.page }}</span>
+                    <span>{{ source.chunk_id }}</span>
+                  </div>
+                </div>
+
+                <div class="source-score">
+                  <span>Similarity</span>
+                  <strong>{{ formatNumber(source.score) }}</strong>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+</section>
