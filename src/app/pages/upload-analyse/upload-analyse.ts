@@ -67,6 +67,7 @@ interface SummaryRequest {
   styleUrl: './upload-analyse.scss',
 })
 export class UploadAnalyse {
+
   readonly MAX_FILES = 10;
   readonly MAX_FILE_SIZE = 10 * 1024 * 1024;
   readonly MAX_TOTAL_SIZE = 50 * 1024 * 1024;
@@ -98,7 +99,10 @@ export class UploadAnalyse {
   ) {}
 
   get totalSelectedSize(): number {
-    return this.selectedFiles.reduce((total, file) => total + file.size, 0);
+    return this.selectedFiles.reduce(
+      (total, file) => total + file.size,
+      0,
+    );
   }
 
   get processedDocumentCount(): number {
@@ -108,14 +112,24 @@ export class UploadAnalyse {
   }
 
   get processedFilenames(): string[] {
+
     if (this.uploadResult?.filenames?.length) {
       return this.uploadResult.filenames;
     }
 
-    return this.uploadResult?.filename ? [this.uploadResult.filename] : [];
+    return this.uploadResult?.filename
+      ? [this.uploadResult.filename]
+      : [];
   }
 
+
+  
+  // FILE SELECTION
+  
+
+
   onFilesSelected(event: Event): void {
+
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
 
@@ -123,42 +137,69 @@ export class UploadAnalyse {
       return;
     }
 
-    const invalidFiles = files.filter(file => !this.isPdf(file));
+    const invalidFiles = files.filter(
+      file => !this.isPdf(file),
+    );
 
     if (invalidFiles.length) {
-      this.errorMessage = 'Only PDF documents can be uploaded.';
+
+      this.errorMessage =
+        'Only PDF documents can be uploaded.';
+
       input.value = '';
       return;
     }
 
-    const oversizedFile = files.find(file => file.size > this.MAX_FILE_SIZE);
+    const oversizedFile = files.find(
+      file => file.size > this.MAX_FILE_SIZE,
+    );
 
     if (oversizedFile) {
-      this.errorMessage = `${oversizedFile.name} exceeds the 10 MB file-size limit.`;
+
+      this.errorMessage =
+        `${oversizedFile.name} exceeds the 10 MB file-size limit.`;
+
       input.value = '';
       return;
     }
 
-    const emptyFile = files.find(file => file.size === 0);
+    const emptyFile = files.find(
+      file => file.size === 0,
+    );
 
     if (emptyFile) {
-      this.errorMessage = `${emptyFile.name} is empty and cannot be uploaded.`;
+
+      this.errorMessage =
+        `${emptyFile.name} is empty and cannot be uploaded.`;
+
       input.value = '';
       return;
     }
 
     const existing = new Set(
-      this.selectedFiles.map(file => `${file.name}-${file.size}-${file.lastModified}`),
+      this.selectedFiles.map(
+        file =>
+          `${file.name}-${file.size}-${file.lastModified}`,
+      ),
     );
 
     const newFiles = files.filter(
-      file => !existing.has(`${file.name}-${file.size}-${file.lastModified}`),
+      file =>
+        !existing.has(
+          `${file.name}-${file.size}-${file.lastModified}`,
+        ),
     );
 
-    const combinedFiles = [...this.selectedFiles, ...newFiles];
+    const combinedFiles = [
+      ...this.selectedFiles,
+      ...newFiles,
+    ];
 
     if (combinedFiles.length > this.MAX_FILES) {
-      this.errorMessage = `You can upload a maximum of ${this.MAX_FILES} PDF documents per collection.`;
+
+      this.errorMessage =
+        `You can upload a maximum of ${this.MAX_FILES} PDF documents per collection.`;
+
       input.value = '';
       return;
     }
@@ -169,7 +210,10 @@ export class UploadAnalyse {
     );
 
     if (combinedSize > this.MAX_TOTAL_SIZE) {
-      this.errorMessage = 'The selected documents exceed the 50 MB collection limit.';
+
+      this.errorMessage =
+        'The selected documents exceed the 50 MB collection limit.';
+
       input.value = '';
       return;
     }
@@ -177,66 +221,114 @@ export class UploadAnalyse {
     this.selectedFiles = combinedFiles;
     this.errorMessage = '';
 
-    // Allow the same input to be used again after adding files.
+    // Allow the same input to be used again.
     input.value = '';
   }
 
+
   removeFile(index: number): void {
-    this.selectedFiles = this.selectedFiles.filter((_, fileIndex) => fileIndex !== index);
+
+    this.selectedFiles =
+      this.selectedFiles.filter(
+        (_, fileIndex) => fileIndex !== index,
+      );
   }
 
+
   clearSelectedFiles(): void {
+
     this.selectedFiles = [];
     this.errorMessage = '';
   }
 
+
+  
+  // UPLOAD DOCUMENTS
+  
+
+
   uploadDocuments(): void {
+
     if (!this.selectedFiles.length) {
-      this.errorMessage = 'Please select at least one PDF document.';
+
+      this.errorMessage =
+        'Please select at least one PDF document.';
+
       return;
     }
 
-    const validationError = this.validateSelectedFiles();
+    const validationError =
+      this.validateSelectedFiles();
 
     if (validationError) {
+
       this.errorMessage = validationError;
       return;
     }
 
     this.uploading = true;
     this.errorMessage = '';
+
     this.clearAnalysisResults();
 
-    /*
-     * The API method should send all selected files in one multipart request
-     * using the field name "files".
-     */
-    this.apiService.uploadPdfs(this.selectedFiles).subscribe({
-      next: (response: UploadResult) => {
-        this.uploadResult = response;
-        this.uploading = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Document upload failed:', error);
-        this.errorMessage =
-          error?.error?.detail ?? 'Unable to process the selected documents.';
-        this.uploading = false;
-        this.cdr.detectChanges();
-      },
-    });
+    this.apiService
+      .uploadPdfs(this.selectedFiles)
+      .subscribe({
+
+        next: (response: UploadResult) => {
+
+          this.uploadResult = response;
+
+          this.uploading = false;
+
+          this.cdr.detectChanges();
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Document upload failed:',
+            error,
+          );
+
+          this.errorMessage =
+            this.getApiErrorMessage(
+              error,
+              'Unable to process the selected documents.',
+            );
+
+          this.uploading = false;
+
+          this.cdr.detectChanges();
+        },
+
+      });
   }
 
+
+  
+  // QUESTION ANSWERING
+  
+
+
   askUploadedDocuments(): void {
-    const cleanQuestion = this.question.trim();
+
+    const cleanQuestion =
+      this.question.trim();
 
     if (!this.uploadResult?.document_id) {
-      this.questionError = 'Please upload and process your documents first.';
+
+      this.questionError =
+        'Please upload and process your documents first.';
+
       return;
     }
 
     if (!cleanQuestion) {
-      this.questionError = 'Please enter a question.';
+
+      this.questionError =
+        'Please enter a question.';
+
       return;
     }
 
@@ -245,36 +337,78 @@ export class UploadAnalyse {
     this.questionResult = null;
 
     const request = {
-      document_id: this.uploadResult.document_id,
-      embedding_model: this.selectedModel,
-      question: cleanQuestion,
-      top_k: Number(this.topK),
+
+      document_id:
+        this.uploadResult.document_id,
+
+      embedding_model:
+        this.selectedModel,
+
+      question:
+        cleanQuestion,
+
+      top_k:
+        Number(this.topK),
     };
 
-    this.apiService.askUploadedPdf(request).subscribe({
-      next: (response: QuestionResult) => {
-        this.questionResult = response;
-        this.askingQuestion = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Question request failed:', error);
-        this.questionError =
-          error?.error?.detail ?? 'Unable to generate an answer.';
-        this.askingQuestion = false;
-        this.cdr.detectChanges();
-      },
-    });
+    this.apiService
+      .askUploadedPdf(request)
+      .subscribe({
+
+        next: (response: QuestionResult) => {
+
+          this.questionResult = response;
+
+          this.askingQuestion = false;
+
+          this.cdr.detectChanges();
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Question request failed:',
+            error,
+          );
+
+          this.questionError =
+            this.getApiErrorMessage(
+              error,
+              'Unable to generate an answer.',
+            );
+
+          this.askingQuestion = false;
+
+          this.cdr.detectChanges();
+        },
+
+      });
   }
 
+
+  
+  // SUMMARY
+  
+
+
   generateSummary(): void {
+
     if (!this.uploadResult?.document_id) {
-      this.summaryError = 'Please upload and process your documents first.';
+
+      this.summaryError =
+        'Please upload and process your documents first.';
+
       return;
     }
 
-    if (this.summaryType === 'topic_focused' && !this.summaryTopic.trim()) {
-      this.summaryError = 'Please enter a topic for the topic-focused summary.';
+    if (
+      this.summaryType === 'topic_focused'
+      && !this.summaryTopic.trim()
+    ) {
+
+      this.summaryError =
+        'Please enter a topic for the topic-focused summary.';
+
       return;
     }
 
@@ -283,142 +417,316 @@ export class UploadAnalyse {
     this.summaryResult = null;
 
     const request: SummaryRequest = {
-      document_id: this.uploadResult.document_id,
-      summary_type: this.summaryType,
-      summary_length: this.summaryLength,
+
+      document_id:
+        this.uploadResult.document_id,
+
+      summary_type:
+        this.summaryType,
+
+      summary_length:
+        this.summaryLength,
     };
 
     if (this.summaryType === 'topic_focused') {
-      request.topic = this.summaryTopic.trim();
-      request.embedding_model = this.summaryModel;
-      request.top_k = Number(this.summaryTopK);
+
+      request.topic =
+        this.summaryTopic.trim();
+
+      request.embedding_model =
+        this.summaryModel;
+
+      request.top_k =
+        Number(this.summaryTopK);
     }
 
-    this.apiService.generateSummary(request).subscribe({
-      next: (response: SummaryResult) => {
-        this.summaryResult = response;
-        this.generatingSummary = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Summary request failed:', error);
-        this.summaryError =
-          error?.error?.detail ?? 'Unable to generate the summary.';
-        this.generatingSummary = false;
-        this.cdr.detectChanges();
-      },
-    });
+    this.apiService
+      .generateSummary(request)
+      .subscribe({
+
+        next: (response: SummaryResult) => {
+
+          this.summaryResult = response;
+
+          this.generatingSummary = false;
+
+          this.cdr.detectChanges();
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Summary request failed:',
+            error,
+          );
+
+          this.summaryError =
+            this.getApiErrorMessage(
+              error,
+              'Unable to generate the summary.',
+            );
+
+          this.generatingSummary = false;
+
+          this.cdr.detectChanges();
+        },
+
+      });
   }
 
+
+  
+  // SUMMARY CONTROLS
+  
+
+
   setSummaryType(type: SummaryType): void {
+
     this.summaryType = type;
+
     this.summaryError = '';
+
     this.summaryResult = null;
   }
 
+
+  
+  // QUESTION CONTROLS
+  
+
+
   useExampleQuestion(question: string): void {
+
     this.question = question;
+
     this.questionError = '';
   }
 
+
   clearQuestion(): void {
+
     this.question = '';
+
     this.questionError = '';
+
     this.questionResult = null;
   }
 
+
+  
+  // NEW COLLECTION
+  
+
+
   startNewCollection(): void {
+
     this.selectedFiles = [];
+
     this.uploadResult = null;
+
     this.errorMessage = '';
+
     this.question = '';
+
     this.summaryTopic = '';
+
     this.clearAnalysisResults();
   }
 
-  modelDescription(model: EmbeddingModel): string {
-    const descriptions: Record<EmbeddingModel, string> = {
-      sentence_transformer: 'Fast local embedding model.',
-      bge: 'Strong open-source retrieval model.',
-      openai: 'API-based embedding model used in the comparison.',
-    };
+
+  
+  // DISPLAY HELPERS
+  
+
+
+  modelDescription(
+    model: EmbeddingModel,
+  ): string {
+
+    const descriptions:
+      Record<EmbeddingModel, string> = {
+
+        sentence_transformer:
+          'Fast local embedding model.',
+
+        bge:
+          'Strong open-source retrieval model.',
+
+        openai:
+          'API-based embedding model used in the comparison.',
+      };
 
     return descriptions[model];
   }
 
-  formatModelName(model?: string | null): string {
-    const names: Record<string, string> = {
-      sentence_transformer: 'Sentence Transformer',
-      bge: 'BGE',
-      openai: 'OpenAI',
-    };
 
-    return model ? (names[model] ?? model) : '—';
+  formatModelName(
+    model?: string | null,
+  ): string {
+
+    const names:
+      Record<string, string> = {
+
+        sentence_transformer:
+          'Sentence Transformer',
+
+        bge:
+          'BGE',
+
+        openai:
+          'OpenAI',
+      };
+
+    return model
+      ? (names[model] ?? model)
+      : '—';
   }
 
-  formatNumber(value: number | null | undefined): string {
-    return value === null || value === undefined
+
+  formatNumber(
+    value: number | null | undefined,
+  ): string {
+
+    return value === null
+      || value === undefined
       ? '—'
       : Number(value).toFixed(4);
   }
 
+
   formatFileSize(bytes: number): string {
+
     if (bytes < 1024) {
       return `${bytes} B`;
     }
 
     if (bytes < 1024 * 1024) {
+
       return `${(bytes / 1024).toFixed(1)} KB`;
     }
 
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(
+      bytes / (1024 * 1024)
+    ).toFixed(2)} MB`;
   }
 
-  titleCase(value?: string | null): string {
+
+  titleCase(
+    value?: string | null,
+  ): string {
+
     if (!value) {
       return '—';
     }
 
     return value
       .replace(/_/g, ' ')
-      .replace(/\b\w/g, letter => letter.toUpperCase());
+      .replace(
+        /\b\w/g,
+        letter => letter.toUpperCase(),
+      );
   }
 
+
+  
+  // HOSTED API ERROR HANDLING
+  
+
+
+  private getApiErrorMessage(
+    error: any,
+    fallback: string,
+  ): string {
+
+    const status = error?.status;
+
+    if (
+      status === 0
+      || status === 500
+      || status === 502
+      || status === 503
+      || status === 504
+    ) {
+
+      return 'The hosted research demonstrator could not complete this resource-intensive operation. '
+        + 'The cloud deployment has limited computing resources, particularly when processing multiple '
+        + 'documents or embedding models. Please try again with fewer documents or retry later. '
+        + 'The full system can also be demonstrated in the local development environment.';
+    }
+
+    return error?.error?.detail
+      ?? fallback;
+  }
+
+
+  
+  // VALIDATION
+  
+
+
   private validateSelectedFiles(): string | null {
-    if (this.selectedFiles.length > this.MAX_FILES) {
+
+    if (
+      this.selectedFiles.length
+      > this.MAX_FILES
+    ) {
+
       return `You can upload a maximum of ${this.MAX_FILES} PDF documents per collection.`;
     }
 
-    for (const file of this.selectedFiles) {
+    for (
+      const file
+      of this.selectedFiles
+    ) {
+
       if (!this.isPdf(file)) {
+
         return `${file.name} is not a PDF document.`;
       }
 
       if (file.size === 0) {
+
         return `${file.name} is empty and cannot be uploaded.`;
       }
 
-      if (file.size > this.MAX_FILE_SIZE) {
+      if (
+        file.size
+        > this.MAX_FILE_SIZE
+      ) {
+
         return `${file.name} exceeds the 10 MB file-size limit.`;
       }
     }
 
-    if (this.totalSelectedSize > this.MAX_TOTAL_SIZE) {
+    if (
+      this.totalSelectedSize
+      > this.MAX_TOTAL_SIZE
+    ) {
+
       return 'The selected documents exceed the 50 MB collection limit.';
     }
 
     return null;
   }
 
+
   private isPdf(file: File): boolean {
+
     return file.type === 'application/pdf'
-      || file.name.toLowerCase().endsWith('.pdf');
+      || file.name
+        .toLowerCase()
+        .endsWith('.pdf');
   }
 
+
   private clearAnalysisResults(): void {
+
     this.questionResult = null;
+
     this.questionError = '';
+
     this.summaryResult = null;
+
     this.summaryError = '';
   }
 }
