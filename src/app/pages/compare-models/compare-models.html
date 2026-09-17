@@ -42,6 +42,7 @@
         [class.active]="
           comparisonMode === 'research'
         "
+        [disabled]="loading || summaryLoading || uploading"
         (click)="setMode('research')"
       >
         Research Corpus
@@ -54,6 +55,7 @@
         [class.active]="
           comparisonMode === 'uploaded'
         "
+        [disabled]="loading || summaryLoading || uploading"
         (click)="setMode('uploaded')"
       >
         Uploaded Collection
@@ -235,6 +237,7 @@
           (click)="
             setComparisonTask('qa')
           "
+          [disabled]="loading || summaryLoading || uploading"
         >
           Question Answering
         </button>
@@ -249,6 +252,7 @@
           (click)="
             setComparisonTask('summary')
           "
+          [disabled]="loading || summaryLoading || uploading"
         >
           Topic Summary
         </button>
@@ -381,13 +385,14 @@
         type="button"
         class="compare-button"
         [disabled]="
-          loading ||
-          (
-            comparisonMode ===
-            'uploaded' &&
-            !uploadResult
-          )
-        "
+  loading ||
+  summaryLoading ||
+  uploading ||
+  (
+    comparisonMode === 'uploaded' &&
+    !uploadResult
+  )
+"
         (click)="compareModels()"
       >
 
@@ -759,9 +764,11 @@
         type="button"
         class="compare-button"
         [disabled]="
-          summaryLoading ||
-          !uploadResult
-        "
+  summaryLoading ||
+  loading ||
+  uploading ||
+  !uploadResult
+"
         (click)="compareTopicSummary()"
       >
 

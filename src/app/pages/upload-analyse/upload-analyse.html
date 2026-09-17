@@ -140,7 +140,12 @@
           </p>
         </div>
 
-        <button type="button" class="secondary-button" (click)="startNewCollection()">
+        <button
+  type="button"
+  class="secondary-button"
+  [disabled]="uploading || askingQuestion || generatingSummary"
+  (click)="startNewCollection()"
+>
           New collection
         </button>
       </div>
@@ -262,7 +267,7 @@
           <button
             type="button"
             class="secondary-button"
-            [disabled]="askingQuestion"
+            [disabled]="askingQuestion || generatingSummary || uploading"
             (click)="clearQuestion()"
           >
             Clear
@@ -271,7 +276,7 @@
           <button
             type="button"
             class="primary-button"
-            [disabled]="askingQuestion || !question.trim()"
+            [disabled]="askingQuestion || generatingSummary || uploading || !question.trim()"
             (click)="askUploadedDocuments()"
           >
             @if (askingQuestion) {
@@ -377,7 +382,7 @@
           <button
             type="button"
             class="primary-button"
-            [disabled]="generatingSummary"
+            [disabled]="generatingSummary || askingQuestion || uploading"
             (click)="generateSummary()"
           >
             @if (generatingSummary) {
@@ -433,7 +438,7 @@
         </div>
       </div>
 
-      @if (questionResult.sources?.length) {
+      @if (questionResult.sources.length > 0) {
         <div class="sources-section">
           <div class="section-heading">
             <div>
